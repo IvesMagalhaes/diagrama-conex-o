@@ -1,0 +1,226 @@
+const { app, BrowserWindow, ipcMain, safeStorage, shell } = require("electron");
+const path = require("path");
+const fs = require("fs");
+const sql = require("mssql");
+
+let mainWindow;
+let pool = null;
+let currentConfig = null;
+
+const credsPath = () => path.join(app.getPath("userData"), "sql-credentials.bin");
+
+function createWindow() {
+  mainWindow = new BrowserWindow({
+    width: 1400,
+    height: 900,
+    minWidth: 1100,
+    minHeight: 700,
+    title: "Diagramas Unifilares - ONS",
+    webPreferences: {
+      preload: path.join(__dirname, "preload.cjs"),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+
+  const devUrl = process.env.VITE_DEV_SERVER_URL;
+  if (devUrl) {
+    mainWindow.loadURL(devUrl);
+    mainWindow.webContents.openDevTools();
+  } else {
+    mainWindow.loadFile(path.join(__dirname, "..", "dist", "index.html"));
+  }
+
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    shell.openExternal(url);
+    return { action: "deny" };
+  });
+}
+
+app.whenReady().then(createWindow);
+app.on("window-all-closed", () => {
+  if (pool) pool.close().catch(() => {});
+  if (process.platform !== "darwin") app.quit();
+});
+
+// ----- Credentials persistence (encrypted at rest) -----
+function saveCreds(config) {
+  const json = JSON.stringify(config);
+  if (safeStorage.isEncryptionAvailable()) {
+    const enc = safeStorage.encryptString(json);
+    fs.writeFileSync(credsPath(), enc);
+  } else {
+    fs.writeFileSync(credsPath(), json, "utf-8");
+  }
+}
+function loadCreds() {
+  try {
+    if (!fs.existsSync(credsPath())) return null;
+    const buf = fs.readFileSync(credsPath());
+    if (safeStorage.isEncryptionAvailable()) {
+      return JSON.parse(safeStorage.decryptString(buf));
+    }
+    return JSON.parse(buf.toString("utf-8"));
+  } catch {
+    return null;
+  }
+}
+
+ipcMain.handle("creds:load", () => loadCreds());
+ipcMain.handle("creds:clear", () => {
+  try { fs.unlinkSync(credsPath()); } catch {}
+  if (pool) { pool.close().catch(() => {}); pool = null; }
+  return true;
+});
+
+// ----- SQL connection -----
+async function connect(config) {
+  if (pool) { await pool.close().catch(() => {}); pool = null; }
+  const cfg = {
+    server: config.host,
+    port: Number(config.port) || 1433,
+    database: config.database,
+    user: config.username,
+    password: config.password,
+    options: {
+      encrypt: !!config.encrypt,
+      trustServerCertificate: true,
+      enableArithAbort: true,
+    },
+    connectionTimeout: 15000,
+    requestTimeout: 30000,
+  };
+  pool = await sql.connect(cfg);
+  currentConfig = config;
+  return true;
+}
+
+ipcMain.handle("sql:connect", async (_e, config) => {
+  try {
+    await connect(config);
+    if (config.remember) saveCreds(config);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+});
+
+async function ensurePool() {
+  if (pool) return pool;
+  const saved = loadCreds();
+  if (saved) {
+    await connect(saved);
+    return pool;
+  }
+  throw new Error("Não conectado ao SQL Server");
+}
+
+// ----- Queries -----
+ipcMain.handle("sql:listSolicitacoes", async (_e, filters = {}) => {
+  try {
+    const p = await ensurePool();
+    const req = p.request();
+    let where = "s.id_tpstatussolicitacao <> 4"; // not Excluído by default unless filtered
+    if (filters.status && filters.status.length) {
+      where = `s.id_tpstatussolicitacao IN (${filters.status.map(Number).join(",")})`;
+    }
+    if (filters.tpdocumento && filters.tpdocumento.length) {
+      where += ` AND s.id_tpdocumento IN (${filters.tpdocumento.map(Number).join(",")})`;
+    }
+    if (filters.cosId) {
+      req.input("cosId", sql.Char, filters.cosId);
+      where += ` AND s.cos_id = @cosId`;
+    }
+    if (filters.insId) {
+      req.input("insId", sql.Char, filters.insId);
+      where += ` AND si.ins_id = @insId`;
+    }
+    if (filters.crc) {
+      req.input("crc", sql.VarChar, filters.crc);
+      where += ` AND ai.cod_crc = @crc`;
+    }
+    if (filters.dataIni) {
+      req.input("dataIni", sql.DateTime, new Date(filters.dataIni));
+      where += ` AND s.din_modificacao >= @dataIni`;
+    }
+    if (filters.dataFim) {
+      req.input("dataFim", sql.DateTime, new Date(filters.dataFim));
+      where += ` AND s.din_modificacao <= @dataFim`;
+    }
+
+    const query = `
+      SELECT
+        s.id_solicitacao,
+        s.din_criacao, s.din_modificacao, s.din_revisao,
+        s.num_revisao,
+        td.dsc_tpdocumento, s.id_tpdocumento,
+        ts.dsc_statussolicitacao, s.id_tpstatussolicitacao,
+        s.nom_agenteoperacao,
+        s.cos_id,
+        ai.nomecurto AS instalacao_nome,
+        ai.cod_crc,
+        si.ins_id,
+        (SELECT COUNT(*) FROM DiagramasUnifilares.tb_anexodiagramaunifilar a WHERE a.id_solicitacao = s.id_solicitacao) AS qtd_anexos
+      FROM DiagramasUnifilares.tb_solicitacao s
+      LEFT JOIN DiagramasUnifilares.tb_tpdocumento td ON td.id_tpdocumento = s.id_tpdocumento
+      LEFT JOIN DiagramasUnifilares.tb_tpstatussolicitacao ts ON ts.id_tpstatussolicitacao = s.id_tpstatussolicitacao
+      LEFT JOIN DiagramasUnifilares.tb_solicitacaoins si ON si.id_solicitacao = s.id_solicitacao
+      LEFT JOIN DiagramasUnifilares.tb_aux_ins ai ON ai.ins_id = si.ins_id
+      WHERE ${where}
+      ORDER BY s.din_modificacao DESC
+    `;
+    const r = await req.query(query);
+    return { ok: true, rows: r.recordset };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+});
+
+ipcMain.handle("sql:getSolicitacao", async (_e, id) => {
+  try {
+    const p = await ensurePool();
+    const req = p.request().input("id", sql.Int, id);
+    const main = await req.query(`
+      SELECT s.*, td.dsc_tpdocumento, ts.dsc_statussolicitacao,
+        ai.nomecurto AS instalacao_nome, ai.cod_crc, si.ins_id
+      FROM DiagramasUnifilares.tb_solicitacao s
+      LEFT JOIN DiagramasUnifilares.tb_tpdocumento td ON td.id_tpdocumento = s.id_tpdocumento
+      LEFT JOIN DiagramasUnifilares.tb_tpstatussolicitacao ts ON ts.id_tpstatussolicitacao = s.id_tpstatussolicitacao
+      LEFT JOIN DiagramasUnifilares.tb_solicitacaoins si ON si.id_solicitacao = s.id_solicitacao
+      LEFT JOIN DiagramasUnifilares.tb_aux_ins ai ON ai.ins_id = si.ins_id
+      WHERE s.id_solicitacao = @id
+    `);
+    const anexos = await p.request().input("id", sql.Int, id).query(`
+      SELECT id_anexodiagramaunifilar, url_arquivo, nom_arquivo, din_inclusao
+      FROM DiagramasUnifilares.tb_anexodiagramaunifilar
+      WHERE id_solicitacao = @id
+      ORDER BY din_inclusao DESC
+    `);
+    const coments = await p.request().input("id", sql.Int, id).query(`
+      SELECT id_comentariodiagramaunifilar, dsc_texto, nom_autor, din_criacao
+      FROM DiagramasUnifilares.tb_comentariodiagramaunifilar
+      WHERE id_solicitacao = @id
+      ORDER BY din_criacao DESC
+    `);
+    return { ok: true, solicitacao: main.recordset[0], anexos: anexos.recordset, comentarios: coments.recordset };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+});
+
+ipcMain.handle("sql:lookups", async () => {
+  try {
+    const p = await ensurePool();
+    const inst = await p.request().query(`SELECT DISTINCT cos_id FROM DiagramasUnifilares.tb_aux_ins WHERE cos_id IS NOT NULL ORDER BY cos_id`);
+    const instal = await p.request().query(`SELECT ins_id, nomecurto, cos_id, cod_crc FROM DiagramasUnifilares.tb_aux_ins ORDER BY nomecurto`);
+    const crcs = await p.request().query(`SELECT DISTINCT cod_crc FROM DiagramasUnifilares.tb_aux_ins WHERE cod_crc IS NOT NULL ORDER BY cod_crc`);
+    return { ok: true, instituicoes: inst.recordset, instalacoes: instal.recordset, crcs: crcs.recordset };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+});
+
+ipcMain.handle("shell:openExternal", async (_e, url) => {
+  await shell.openExternal(url);
+  return true;
+});
