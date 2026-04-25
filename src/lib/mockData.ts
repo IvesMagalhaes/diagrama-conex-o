@@ -44,12 +44,12 @@ SAMPLE.forEach((s) => {
   ];
 });
 
-export async function mockConnect(_c: SqlCreds) {
+export async function mockConnect(_c: SqlCreds): Promise<{ ok: boolean; error?: string }> {
   await new Promise((r) => setTimeout(r, 400));
-  return { ok: true as const };
+  return { ok: true };
 }
 
-export async function mockListSolicitacoes(f: ListFilters) {
+export async function mockListSolicitacoes(f: ListFilters): Promise<{ ok: boolean; rows?: SolicitacaoRow[]; error?: string }> {
   await new Promise((r) => setTimeout(r, 200));
   let rows: SolicitacaoRow[] = SAMPLE.map(({ _detail, _anexos, _coments, ...r }) => r);
   if (f.status?.length) rows = rows.filter((r) => f.status!.includes(r.id_tpstatussolicitacao));
