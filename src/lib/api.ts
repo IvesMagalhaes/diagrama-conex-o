@@ -1,0 +1,57 @@
+import { useEffect, useState } from "react";
+import type { SqlCreds, ListFilters } from "@/types/electron";
+import { mockListSolicitacoes, mockGetSolicitacao, mockLookups, mockConnect } from "./mockData";
+
+const isElectron = () => typeof window !== "undefined" && !!window.electronAPI?.isElectron;
+
+export const api = {
+  isElectron,
+  async loadCreds(): Promise<SqlCreds | null> {
+    if (isElectron()) return window.electronAPI!.loadCreds();
+    const raw = localStorage.getItem("sql-creds-demo");
+    return raw ? JSON.parse(raw) : null;
+  },
+  async clearCreds() {
+    if (isElectron()) return window.electronAPI!.clearCreds();
+    localStorage.removeItem("sql-creds-demo");
+    localStorage.removeItem("sql-connected");
+    return true;
+  },
+  async connect(c: SqlCreds) {
+    if (isElectron()) return window.electronAPI!.connect(c);
+    if (c.remember) localStorage.setItem("sql-creds-demo", JSON.stringify(c));
+    localStorage.setItem("sql-connected", "1");
+    return mockConnect(c);
+  },
+  async listSolicitacoes(f: ListFilters) {
+    if (isElectron()) return window.electronAPI!.listSolicitacoes(f);
+    return mockListSolicitacoes(f);
+  },
+  async getSolicitacao(id: number) {
+    if (isElectron()) return window.electronAPI!.getSolicitacao(id);
+    return mockGetSolicitacao(id);
+  },
+  async lookups() {
+    if (isElectron()) return window.electronAPI!.lookups();
+    return mockLookups();
+  },
+  async openExternal(url: string) {
+    if (isElectron()) return window.electronAPI!.openExternal(url);
+    window.open(url, "_blank", "noopener");
+    return true;
+  },
+};
+
+export function useConnected() {
+  const [connected, setConnected] = useState<boolean>(() =>
+    isElectron() ? false : localStorage.getItem("sql-connected") === "1"
+  );
+  useEffect(() => {
+    if (isElectron()) {
+      api.loadCreds().then((c) => {
+        if (c) api.connect(c).then((r) => setConnected(!!r.ok));
+      });
+    }
+  }, []);
+  return [connected, setConnected] as const;
+}

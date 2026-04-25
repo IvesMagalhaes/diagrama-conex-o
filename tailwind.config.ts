@@ -57,6 +57,15 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        status: {
+          analise: { DEFAULT: "hsl(var(--status-analise))", foreground: "hsl(var(--status-analise-foreground))" },
+          acordo: { DEFAULT: "hsl(var(--status-acordo))", foreground: "hsl(var(--status-acordo-foreground))" },
+          pendencia: { DEFAULT: "hsl(var(--status-pendencia))", foreground: "hsl(var(--status-pendencia-foreground))" },
+          excluido: { DEFAULT: "hsl(var(--status-excluido))", foreground: "hsl(var(--status-excluido-foreground))" },
+          solicitado: { DEFAULT: "hsl(var(--status-solicitado))", foreground: "hsl(var(--status-solicitado-foreground))" },
+          distribuido: { DEFAULT: "hsl(var(--status-distribuido))", foreground: "hsl(var(--status-distribuido-foreground))" },
+          arquivado: { DEFAULT: "hsl(var(--status-arquivado))", foreground: "hsl(var(--status-arquivado-foreground))" },
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
