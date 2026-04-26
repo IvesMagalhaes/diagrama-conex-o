@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
-import type { Anexo, Comentario, SolicitacaoDetail as Detail } from "@/types/electron";
+import type { Anexo, Comentario, SolicitacaoDetail as Detail, MpoDocumento } from "@/types/electron";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { StatusBadge } from "./StatusBadge";
 import { fmtDate } from "@/lib/format";
-import { Mail, FileText, MessageSquare, Loader2, Building2, MapPin, Radio, AlertTriangle, ExternalLink } from "lucide-react";
+import { DateTimeCell } from "./DateTimeCell";
+import { CopyButton } from "./CopyButton";
+import { Mail, FileText, MessageSquare, Loader2, Building2, MapPin, Radio, AlertTriangle, ExternalLink, ClipboardList, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TPDOC_MAP } from "@/lib/constants";
 
@@ -13,6 +15,8 @@ const SINTEGRE_BASE = "https://sintegre.ons.org.br/sites/diagramasunifilares/Pag
 export default function SolicitacaoDetailModal({ id, onClose }: { id: number; onClose: () => void }) {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<{ solicitacao?: Detail; anexos?: Anexo[]; comentarios?: Comentario[] }>({});
+  const [mpo, setMpo] = useState<MpoDocumento[]>([]);
+  const [mpoLoading, setMpoLoading] = useState(false);
 
   useEffect(() => {
     setLoading(true);
