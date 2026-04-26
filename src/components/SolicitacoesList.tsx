@@ -5,7 +5,6 @@ import { STATUS_OPTIONS, TPDOC_OPTIONS, TPDOC_MAP } from "@/lib/constants";
 import { fmtDate } from "@/lib/format";
 import { StatusBadge } from "./StatusBadge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -13,6 +12,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Paperclip, Filter, RotateCw, Database, LogOut, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import SolicitacaoDetail from "./SolicitacaoDetail";
+import { Autocomplete } from "./Autocomplete";
+import { DateInputBR } from "./DateInputBR";
 
 interface Lookups {
   instituicoes: { nom_agenteoperacao: string }[];
@@ -73,8 +74,8 @@ export default function SolicitacoesList({ onLogout }: { onLogout: () => void })
           <div className="flex items-center gap-3">
             <Database className="size-5" />
             <div>
-              <h1 className="font-semibold leading-tight">Solicitações de Diagramas Unifilares</h1>
-              <p className="text-xs opacity-80">ONS · Centro de Relacionamento com Agentes</p>
+              <h1 className="font-semibold leading-tight">Sistema de Diagramas Unifilares</h1>
+              <p className="text-xs opacity-80">ONS · PDR - Gerência de Configurações de Rede</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
