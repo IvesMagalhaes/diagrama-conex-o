@@ -2,18 +2,19 @@ import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
 import type { SolicitacaoRow, ListFilters } from "@/types/electron";
 import { STATUS_OPTIONS, TPDOC_OPTIONS, TPDOC_MAP } from "@/lib/constants";
-import { fmtDate } from "@/lib/format";
 import { StatusBadge } from "./StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Paperclip, Filter, RotateCw, Database, LogOut, AlertCircle } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Paperclip, Filter, RotateCw, Database, LogOut, AlertCircle, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from "lucide-react";
 import { toast } from "sonner";
 import SolicitacaoDetail from "./SolicitacaoDetail";
 import { Autocomplete } from "./Autocomplete";
 import { DateInputBR } from "./DateInputBR";
+import { DateTimeCell } from "./DateTimeCell";
 
 interface Lookups {
   instituicoes: { nom_agenteoperacao: string }[];
