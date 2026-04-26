@@ -136,8 +136,8 @@ ipcMain.handle("sql:listSolicitacoes", async (_e, filters = {}) => {
       where += ` AND si.ins_id = @insId`;
     }
     if (filters.crc) {
-      req.input("crc", sql.VarChar, filters.crc);
-      where += ` AND ai.cod_crc = @crc`;
+      req.input("crc", sql.Char, filters.crc);
+      where += ` AND s.cos_id = @crc`;
     }
     if (filters.dataIni) {
       req.input("dataIni", sql.DateTime, new Date(filters.dataIni));
@@ -157,8 +157,8 @@ ipcMain.handle("sql:listSolicitacoes", async (_e, filters = {}) => {
         ts.dsc_statussolicitacao, s.id_tpstatussolicitacao,
         s.nom_agenteoperacao,
         s.cos_id,
+        ac.nomecurto AS cos_nome,
         ai.nomecurto AS instalacao_nome,
-        ai.cod_crc,
         si.ins_id,
         (SELECT COUNT(*) FROM DiagramasUnifilares.tb_anexodiagramaunifilar a WHERE a.id_solicitacao = s.id_solicitacao) AS qtd_anexos
       FROM DiagramasUnifilares.tb_solicitacao s
@@ -166,6 +166,7 @@ ipcMain.handle("sql:listSolicitacoes", async (_e, filters = {}) => {
       LEFT JOIN DiagramasUnifilares.tb_tpstatussolicitacao ts ON ts.id_tpstatussolicitacao = s.id_tpstatussolicitacao
       LEFT JOIN DiagramasUnifilares.tb_solicitacaoins si ON si.id_solicitacao = s.id_solicitacao
       LEFT JOIN DiagramasUnifilares.tb_aux_ins ai ON ai.ins_id = si.ins_id
+      LEFT JOIN DiagramasUnifilares.tb_aux_cos ac ON ac.cos_id = s.cos_id
       WHERE ${where}
       ORDER BY s.din_modificacao DESC
     `;
@@ -182,16 +183,24 @@ ipcMain.handle("sql:getSolicitacao", async (_e, id) => {
     const req = p.request().input("id", sql.Int, id);
     const main = await req.query(`
       SELECT s.*, td.dsc_tpdocumento, ts.dsc_statussolicitacao,
-        ai.nomecurto AS instalacao_nome, ai.cod_crc, si.ins_id
+        ai.nomecurto AS instalacao_nome, si.ins_id,
+        ac.nomecurto AS cos_nome
       FROM DiagramasUnifilares.tb_solicitacao s
       LEFT JOIN DiagramasUnifilares.tb_tpdocumento td ON td.id_tpdocumento = s.id_tpdocumento
       LEFT JOIN DiagramasUnifilares.tb_tpstatussolicitacao ts ON ts.id_tpstatussolicitacao = s.id_tpstatussolicitacao
       LEFT JOIN DiagramasUnifilares.tb_solicitacaoins si ON si.id_solicitacao = s.id_solicitacao
       LEFT JOIN DiagramasUnifilares.tb_aux_ins ai ON ai.ins_id = si.ins_id
+      LEFT JOIN DiagramasUnifilares.tb_aux_cos ac ON ac.cos_id = s.cos_id
       WHERE s.id_solicitacao = @id
     `);
     const anexos = await p.request().input("id", sql.Int, id).query(`
-      SELECT id_anexodiagramaunifilar, url_arquivo, nom_arquivo, din_inclusao
+      SELECT id_anexodiagramaunifilar,
+        CASE
+          WHEN url_arquivo IS NULL THEN NULL
+          WHEN url_arquivo LIKE 'http%' THEN url_arquivo
+          ELSE 'https://sintegre.ons.org.br' + url_arquivo
+        END AS url_arquivo,
+        nom_arquivo, din_inclusao
       FROM DiagramasUnifilares.tb_anexodiagramaunifilar
       WHERE id_solicitacao = @id
       ORDER BY din_inclusao DESC
@@ -200,7 +209,7 @@ ipcMain.handle("sql:getSolicitacao", async (_e, id) => {
       SELECT id_comentariodiagramaunifilar, dsc_texto, nom_autor, din_criacao
       FROM DiagramasUnifilares.tb_comentariodiagramaunifilar
       WHERE id_solicitacao = @id
-      ORDER BY din_criacao DESC
+      ORDER BY din_criacao ASC
     `);
     return { ok: true, solicitacao: main.recordset[0], anexos: anexos.recordset, comentarios: coments.recordset };
   } catch (err) {
@@ -211,10 +220,10 @@ ipcMain.handle("sql:getSolicitacao", async (_e, id) => {
 ipcMain.handle("sql:lookups", async () => {
   try {
     const p = await ensurePool();
-    const inst = await p.request().query(`SELECT DISTINCT cos_id FROM DiagramasUnifilares.tb_aux_ins WHERE cos_id IS NOT NULL ORDER BY cos_id`);
-    const instal = await p.request().query(`SELECT ins_id, nomecurto, cos_id, cod_crc FROM DiagramasUnifilares.tb_aux_ins ORDER BY nomecurto`);
-    const crcs = await p.request().query(`SELECT DISTINCT cod_crc FROM DiagramasUnifilares.tb_aux_ins WHERE cod_crc IS NOT NULL ORDER BY cod_crc`);
-    return { ok: true, instituicoes: inst.recordset, instalacoes: instal.recordset, crcs: crcs.recordset };
+    const inst = await p.request().query(`SELECT DISTINCT nom_agenteoperacao FROM DiagramasUnifilares.tb_solicitacao WHERE nom_agenteoperacao IS NOT NULL ORDER BY nom_agenteoperacao`);
+    const instal = await p.request().query(`SELECT ins_id, nomecurto, cos_id FROM DiagramasUnifilares.tb_aux_ins ORDER BY nomecurto`);
+    const cos = await p.request().query(`SELECT cos_id, nomecurto FROM DiagramasUnifilares.tb_aux_cos ORDER BY nomecurto`);
+    return { ok: true, instituicoes: inst.recordset, instalacoes: instal.recordset, crcs: cos.recordset };
   } catch (err) {
     return { ok: false, error: err.message };
   }
