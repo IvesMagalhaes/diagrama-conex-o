@@ -128,8 +128,8 @@ ipcMain.handle("sql:listSolicitacoes", async (_e, filters = {}) => {
       where += ` AND s.id_tpdocumento IN (${filters.tpdocumento.map(Number).join(",")})`;
     }
     if (filters.cosId) {
-      req.input("cosId", sql.Char, filters.cosId);
-      where += ` AND s.cos_id = @cosId`;
+      req.input("instituicao", sql.NVarChar, filters.cosId);
+      where += ` AND s.nom_agenteoperacao = @instituicao`;
     }
     if (filters.insId) {
       req.input("insId", sql.Char, filters.insId);
