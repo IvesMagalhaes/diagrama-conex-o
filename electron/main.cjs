@@ -245,20 +245,19 @@ ipcMain.handle("sql:listMpo", async (_e, insId) => {
       .input("like", sql.NVarChar, like)
       .query(`
         SELECT
-          id_documentompo,
-          dsc_situacaodocumento,
-          din_modificado,
-          id_identificador,
-          revisao,
-          assunto,
-          dsc_usuariomodificacao,
-          CONCAT('https://mpo.ons.org.br', caminho, '/', dsc_nome) AS url_editar,
-          CONCAT('https://prd-app-nlb25.ons.org.br/OnsMpoDocumentoProviderAppWeb/?SPHostUrl=https:%2F%2Fmpo.ons.org.br&SPLanguage=pt-BR&SPClientTag=0&SPProductNumber=16.0.5483.1000&SPAppWebUrl=https:%2F%2Fapps-20e8b0d27a0094.appsecm-ons.org.br%2FOnsMpoDocumentoProviderApp&MpoApp=true#/DiagramaOperacionalForm/ConjuntoDO/', id_lista) AS url_diagrama
-        FROM mpo.tb_documentosmpo
-        WHERE tipodeconteudo LIKE '%Diagrama%'
-          AND dsc_situacaodocumento IN ('Vigente', 'Pré-Operacional')
-          AND dsc_nome LIKE @like
-        ORDER BY din_modificado DESC
+          mpo.id_documentompo,
+          mpo.dsc_situacaodocumento,
+          mpo.din_modificado,
+          mpo.id_identificador,
+          mpo.revisao,
+          mpo.assunto,
+          mpo.dsc_usuariomodificacao,
+          CONCAT('https://mpo.ons.org.br', mpo.caminho, '/', mpo.dsc_nome) AS url_editar,
+          CONCAT('https://prd-app-nlb25.ons.org.br/OnsMpoDocumentoProviderAppWeb/?SPHostUrl=https:%2F%2Fmpo.ons.org.br&SPLanguage=pt-BR&SPClientTag=0&SPProductNumber=16.0.5483.1000&SPAppWebUrl=https:%2F%2Fapps-20e8b0d27a0094.appsecm-ons.org.br%2FOnsMpoDocumentoProviderApp&MpoApp=true#/DiagramaOperacionalForm/ConjuntoDO/', mpo.id_lista) AS url_diagrama
+        FROM mpo.tb_documentosmpo mpo
+        WHERE LTRIM(RTRIM(mpo.dsc_situacaodocumento)) IN ('Vigente', 'Pré-Operacional')
+          AND LTRIM(RTRIM(mpo.dsc_nome)) LIKE @like
+        ORDER BY mpo.din_modificado DESC
       `);
     return { ok: true, rows: r.recordset };
   } catch (err) {
