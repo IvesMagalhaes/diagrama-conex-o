@@ -107,7 +107,7 @@ export default function SolicitacoesList({ onLogout }: { onLogout: () => void })
               <label className="text-xs font-medium text-muted-foreground">Instituição</label>
               <Autocomplete
                 value={filters.cosId}
-                placeholder="Digite 3+ letras (ex: FUR)"
+                placeholder="Digite 3+ caracteres"
                 options={lookups.instituicoes.map((i) => ({ value: i.nom_agenteoperacao, label: i.nom_agenteoperacao }))}
                 onChange={(v) => update("cosId", v)}
               />
@@ -128,7 +128,7 @@ export default function SolicitacoesList({ onLogout }: { onLogout: () => void })
               <label className="text-xs font-medium text-muted-foreground">Sigla</label>
               <Autocomplete
                 value={filters.sigla}
-                placeholder="Digite 3+ letras (ex: ACAA)"
+                placeholder="Digite 3+ caracteres"
                 options={filteredInstalacoes.map((i) => ({
                   value: i.ins_id,
                   label: (i.ins_id || "").trim() || "—",
@@ -141,7 +141,7 @@ export default function SolicitacoesList({ onLogout }: { onLogout: () => void })
               <label className="text-xs font-medium text-muted-foreground">Instalação</label>
               <Autocomplete
                 value={filters.insId}
-                placeholder="Digite 3+ letras (ex: GONÇAL)"
+                placeholder="Digite 3+ caracteres"
                 options={filteredInstalacoes.map((i) => ({
                   value: i.ins_id,
                   label: i.nomecurto,
@@ -217,7 +217,7 @@ export default function SolicitacoesList({ onLogout }: { onLogout: () => void })
           </div>
           <div className="flex justify-end gap-2 mt-4">
             <Button variant="ghost" onClick={handleClear}>Limpar</Button>
-            <Button onClick={handleApply} disabled={loading}>Aplicar filtros</Button>
+            <Button onClick={handleApply} disabled={loading}>Filtrar</Button>
           </div>
         </Card>
 
