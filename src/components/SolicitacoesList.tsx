@@ -15,9 +15,9 @@ import { toast } from "sonner";
 import SolicitacaoDetail from "./SolicitacaoDetail";
 
 interface Lookups {
-  instituicoes: { cos_id: string }[];
-  instalacoes: { ins_id: string; nomecurto: string; cos_id: string; cod_crc: string }[];
-  crcs: { cod_crc: string }[];
+  instituicoes: { nom_agenteoperacao: string }[];
+  instalacoes: { ins_id: string; nomecurto: string; cos_id: string }[];
+  crcs: { cos_id: string; nomecurto: string }[];
 }
 
 export default function SolicitacoesList({ onLogout }: { onLogout: () => void }) {
@@ -43,8 +43,8 @@ export default function SolicitacoesList({ onLogout }: { onLogout: () => void })
   }, []);
 
   const filteredInstalacoes = useMemo(
-    () => filters.cosId ? lookups.instalacoes.filter((i) => i.cos_id === filters.cosId) : lookups.instalacoes,
-    [filters.cosId, lookups.instalacoes]
+    () => filters.crc ? lookups.instalacoes.filter((i) => i.cos_id === filters.crc) : lookups.instalacoes,
+    [filters.crc, lookups.instalacoes]
   );
 
   function update<K extends keyof ListFilters>(k: K, v: ListFilters[K]) {
@@ -102,19 +102,19 @@ export default function SolicitacoesList({ onLogout }: { onLogout: () => void })
                 <SelectContent>
                   <SelectItem value="all">Todas</SelectItem>
                   {lookups.instituicoes.map((i) => (
-                    <SelectItem key={i.cos_id} value={i.cos_id}>{i.cos_id.trim()}</SelectItem>
+                    <SelectItem key={i.nom_agenteoperacao} value={i.nom_agenteoperacao}>{i.nom_agenteoperacao}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <label className="text-xs font-medium text-muted-foreground">CRC ONS</label>
+              <label className="text-xs font-medium text-muted-foreground">COS ONS</label>
               <Select value={filters.crc || "all"} onValueChange={(v) => update("crc", v === "all" ? undefined : v)}>
                 <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos</SelectItem>
                   {lookups.crcs.map((c) => (
-                    <SelectItem key={c.cod_crc} value={c.cod_crc}>{c.cod_crc}</SelectItem>
+                    <SelectItem key={c.cos_id} value={c.cos_id}>{c.nomecurto}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -216,7 +216,7 @@ export default function SolicitacoesList({ onLogout }: { onLogout: () => void })
                   <th className="text-left font-medium px-3 py-2">Nº Rev.</th>
                   <th className="text-left font-medium px-3 py-2">Instituição</th>
                   <th className="text-left font-medium px-3 py-2">Instalação</th>
-                  <th className="text-left font-medium px-3 py-2">CRC ONS</th>
+                  <th className="text-left font-medium px-3 py-2">COS ONS</th>
                   <th className="text-left font-medium px-3 py-2">Status</th>
                   <th className="text-left font-medium px-3 py-2">Arquivos</th>
                 </tr>
@@ -236,9 +236,9 @@ export default function SolicitacoesList({ onLogout }: { onLogout: () => void })
                     <td className="px-3 py-2 whitespace-nowrap">{fmtDate(r.din_revisao)}</td>
                     <td className="px-3 py-2">{r.dsc_tpdocumento || "—"}</td>
                     <td className="px-3 py-2 font-mono text-xs">{r.num_revisao || "—"}</td>
-                    <td className="px-3 py-2">{r.cos_id?.trim()}</td>
+                    <td className="px-3 py-2">{r.nom_agenteoperacao || "—"}</td>
                     <td className="px-3 py-2">{r.instalacao_nome || "—"}</td>
-                    <td className="px-3 py-2">{r.cod_crc || "—"}</td>
+                    <td className="px-3 py-2">{r.cos_nome || r.cos_id?.trim() || "—"}</td>
                     <td className="px-3 py-2"><StatusBadge id={r.id_tpstatussolicitacao} /></td>
                     <td className="px-3 py-2">
                       <span className="inline-flex items-center gap-1 text-muted-foreground">

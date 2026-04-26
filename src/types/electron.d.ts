@@ -20,8 +20,8 @@ export interface SolicitacaoRow {
   id_tpstatussolicitacao: number;
   nom_agenteoperacao: string | null;
   cos_id: string;
+  cos_nome: string | null;
   instalacao_nome: string | null;
-  cod_crc: string | null;
   ins_id: string | null;
   qtd_anexos: number;
 }
@@ -40,9 +40,9 @@ export interface SolicitacaoDetail {
   obs_agente: string | null;
   dsc_motivorevisao: string | null;
   cos_id: string;
+  cos_nome: string | null;
   ins_id: string | null;
   instalacao_nome: string | null;
-  cod_crc: string | null;
   dsc_tpdocumento: string | null;
   id_tpdocumento: number;
   dsc_statussolicitacao: string | null;
@@ -82,7 +82,7 @@ declare global {
       connect: (c: SqlCreds) => Promise<{ ok: boolean; error?: string }>;
       listSolicitacoes: (f: ListFilters) => Promise<{ ok: boolean; rows?: SolicitacaoRow[]; error?: string }>;
       getSolicitacao: (id: number) => Promise<{ ok: boolean; solicitacao?: SolicitacaoDetail; anexos?: Anexo[]; comentarios?: Comentario[]; error?: string }>;
-      lookups: () => Promise<{ ok: boolean; instituicoes?: { cos_id: string }[]; instalacoes?: { ins_id: string; nomecurto: string; cos_id: string; cod_crc: string }[]; crcs?: { cod_crc: string }[]; error?: string }>;
+      lookups: () => Promise<{ ok: boolean; instituicoes?: { nom_agenteoperacao: string }[]; instalacoes?: { ins_id: string; nomecurto: string; cos_id: string }[]; crcs?: { cos_id: string; nomecurto: string }[]; error?: string }>;
       openExternal: (url: string) => Promise<boolean>;
     };
   }

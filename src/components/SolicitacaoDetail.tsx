@@ -4,9 +4,11 @@ import type { Anexo, Comentario, SolicitacaoDetail as Detail } from "@/types/ele
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { StatusBadge } from "./StatusBadge";
 import { fmtDate } from "@/lib/format";
-import { Mail, FileText, MessageSquare, Loader2, Building2, MapPin, Radio, AlertTriangle } from "lucide-react";
+import { Mail, FileText, MessageSquare, Loader2, Building2, MapPin, Radio, AlertTriangle, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TPDOC_MAP } from "@/lib/constants";
+
+const SINTEGRE_BASE = "https://sintegre.ons.org.br/sites/diagramasunifilares/Paginas/diagramasunifilares_form.aspx?idDiagramaUnifilar=";
 
 export default function SolicitacaoDetailModal({ id, onClose }: { id: number; onClose: () => void }) {
   const [loading, setLoading] = useState(true);
@@ -23,13 +25,24 @@ export default function SolicitacaoDetailModal({ id, onClose }: { id: number; on
   const s = data.solicitacao;
   const tpDeprecated = s ? TPDOC_MAP[s.id_tpdocumento]?.deprecated : false;
 
+  function buildMailto(s: Detail) {
+    const subject = `Solicitação Diagrama Unifilar #${s.id_solicitacao} - ${s.instalacao_nome || ""} ${s.dsc_tpdocumento || ""}`.trim();
+    const body = `Prezado ${s.nom_criacao || ""},\n\n`;
+    return `mailto:${s.mail_solicitante}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  }
+
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            Solicitação #{id}
-            {s && <StatusBadge id={s.id_tpstatussolicitacao} />}
+          <DialogTitle className="flex items-center gap-3 flex-wrap">
+            <span>Solicitação #{id}</span>
+            <button
+              className="text-sm font-normal text-primary hover:underline inline-flex items-center gap-1"
+              onClick={() => api.openExternal(`${SINTEGRE_BASE}${id}`)}
+            >
+              <ExternalLink className="size-3.5" /> Ver no SINtegre
+            </button>
           </DialogTitle>
         </DialogHeader>
 
@@ -46,12 +59,12 @@ export default function SolicitacaoDetailModal({ id, onClose }: { id: number; on
 
             {/* Bloco solicitante */}
             <section className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
-              <Field label="Data de Solicitação" value={fmtDate(s.din_criacao, true)} />
+              <Field label="Data de Criação" value={fmtDate(s.din_criacao, true)} />
               <Field label="Solicitante" value={s.nom_criacao} />
               <Field label="E-mail">
                 <button
                   className="text-primary hover:underline inline-flex items-center gap-1 text-left"
-                  onClick={() => api.openExternal(`mailto:${s.mail_solicitante}?subject=Solicitação Diagrama Unifilar #${s.id_solicitacao}`)}
+                  onClick={() => api.openExternal(buildMailto(s))}
                 >
                   <Mail className="size-3.5" /> {s.mail_solicitante}
                 </button>
@@ -62,9 +75,9 @@ export default function SolicitacaoDetailModal({ id, onClose }: { id: number; on
 
             {/* Bloco instalação */}
             <section className="grid grid-cols-2 md:grid-cols-3 gap-4 p-4 bg-muted/40 rounded-md text-sm">
-              <Field label="Instituição" icon={<Building2 className="size-3.5" />} value={s.cos_id?.trim()} />
-              <Field label="Instalação (TEMPORÁRIA quando aplicável)" icon={<MapPin className="size-3.5" />} value={s.instalacao_nome || "—"} />
-              <Field label="Centro de Relacionamento ONS" icon={<Radio className="size-3.5" />} value={s.cod_crc || "—"} />
+              <Field label="Instituição" icon={<Building2 className="size-3.5" />} value={s.nom_agenteoperacao || "—"} />
+              <Field label="Instalação" icon={<MapPin className="size-3.5" />} value={s.instalacao_nome || "—"} />
+              <Field label="COS ONS" icon={<Radio className="size-3.5" />} value={s.cos_nome || s.cos_id?.trim() || "—"} />
               <Field label="Número da Revisão" value={s.num_revisao || "—"} />
               <Field label="Data de Revisão" value={fmtDate(s.din_revisao)} />
               <Field label="Tipo de Diagrama" value={s.dsc_tpdocumento || "—"} />
@@ -102,11 +115,11 @@ export default function SolicitacaoDetailModal({ id, onClose }: { id: number; on
               </div>
               <div className="border rounded-md p-3 space-y-2">
                 <div>
-                  <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-1">Obs. ONS</h4>
+                  <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-1">Observação ONS</h4>
                   <p className="text-sm whitespace-pre-wrap">{s.obs_ons || "—"}</p>
                 </div>
                 <div>
-                  <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-1">Obs. Agente</h4>
+                  <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-1">Observação Agente</h4>
                   <p className="text-sm whitespace-pre-wrap">{s.obs_agente || "—"}</p>
                 </div>
               </div>
@@ -114,7 +127,7 @@ export default function SolicitacaoDetailModal({ id, onClose }: { id: number; on
 
             {/* Comentários */}
             <section>
-              <h3 className="font-semibold text-sm mb-2 flex items-center gap-2"><MessageSquare className="size-4" /> Observações (autores e mensagens)</h3>
+              <h3 className="font-semibold text-sm mb-2 flex items-center gap-2"><MessageSquare className="size-4" /> Comentários</h3>
               {data.comentarios?.length ? (
                 <ul className="space-y-2">
                   {data.comentarios.map((c) => (
