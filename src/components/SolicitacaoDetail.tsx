@@ -20,8 +20,19 @@ export default function SolicitacaoDetailModal({ id, onClose }: { id: number; on
 
   useEffect(() => {
     setLoading(true);
+    setMpo([]);
     api.getSolicitacao(id).then((r) => {
-      if (r.ok) setData({ solicitacao: r.solicitacao, anexos: r.anexos, comentarios: r.comentarios });
+      if (r.ok) {
+        setData({ solicitacao: r.solicitacao, anexos: r.anexos, comentarios: r.comentarios });
+        const insId = r.solicitacao?.ins_id;
+        if (insId) {
+          setMpoLoading(true);
+          api.listMpo(insId).then((m) => {
+            if (m.ok && m.rows) setMpo(m.rows);
+            setMpoLoading(false);
+          });
+        }
+      }
       setLoading(false);
     });
   }, [id]);
