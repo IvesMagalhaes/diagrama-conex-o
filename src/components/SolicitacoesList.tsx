@@ -28,13 +28,19 @@ export default function SolicitacoesList({ onLogout }: { onLogout: () => void })
   const [lookups, setLookups] = useState<Lookups>({ instituicoes: [], instalacoes: [], crcs: [] });
   const [filters, setFilters] = useState<ListFilters>({});
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [pageInput, setPageInput] = useState("1");
 
   async function load(f: ListFilters = filters) {
     setLoading(true);
     const r = await api.listSolicitacoes(f);
     setLoading(false);
-    if (r.ok && r.rows) setRows(r.rows);
-    else toast.error("Erro ao listar", { description: r.error });
+    if (r.ok && r.rows) {
+      setRows(r.rows);
+      setPage(1);
+      setPageInput("1");
+    } else toast.error("Erro ao listar", { description: r.error });
   }
 
   useEffect(() => {
