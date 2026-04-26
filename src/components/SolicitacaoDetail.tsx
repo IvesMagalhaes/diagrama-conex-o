@@ -41,7 +41,7 @@ export default function SolicitacaoDetailModal({ id, onClose }: { id: number; on
   const tpDeprecated = s ? TPDOC_MAP[s.id_tpdocumento]?.deprecated : false;
 
   function buildMailto(s: Detail) {
-    const subject = `Solicitação Diagrama Unifilar #${s.id_solicitacao} - ${s.instalacao_nome || ""} ${s.dsc_tpdocumento || ""}`.trim();
+    const subject = `Solicitação #${s.id_solicitacao} Diagrama Unifilar ${s.dsc_tpdocumento || ""} de ${s.instalacao_nome || ""}`.replace(/\s+/g, " ").trim();
     const body = `Prezado ${s.nom_criacao || ""},\n\n`;
     return `mailto:${s.mail_solicitante}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   }
@@ -115,7 +115,7 @@ export default function SolicitacaoDetailModal({ id, onClose }: { id: number; on
                         <th className="text-left font-medium px-2 py-1.5">Assunto</th>
                         <th className="text-left font-medium px-2 py-1.5">Autor</th>
                         <th className="text-left font-medium px-2 py-1.5">Editar MPO</th>
-                        <th className="text-left font-medium px-2 py-1.5">Abrir diagrama</th>
+                        <th className="text-left font-medium px-2 py-1.5">Diagrama</th>
                       </tr>
                     </thead>
                     <tbody>

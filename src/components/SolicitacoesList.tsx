@@ -300,7 +300,7 @@ export default function SolicitacoesList({ onLogout }: { onLogout: () => void })
                     <td className="px-3 py-2 whitespace-nowrap"><DateTimeCell iso={r.din_modificacao} /></td>
                     <td className="px-3 py-2 whitespace-nowrap"><DateTimeCell iso={r.din_revisao} /></td>
                     <td className="px-3 py-2">{r.dsc_tpdocumento || "—"}</td>
-                    <td className="px-3 py-2 font-mono text-base font-semibold">{r.num_revisao || "—"}</td>
+                    <td className="px-3 py-2">{r.num_revisao || "—"}</td>
                     <td className="px-3 py-2">{r.nom_agenteoperacao || "—"}</td>
                     <td className="px-3 py-2">{r.instalacao_nome || "—"}</td>
                     <td className="px-3 py-2">{r.cos_nome || r.cos_id?.trim() || "—"}</td>
