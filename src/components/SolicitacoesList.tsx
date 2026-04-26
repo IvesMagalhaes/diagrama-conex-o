@@ -222,6 +222,54 @@ export default function SolicitacoesList({ onLogout }: { onLogout: () => void })
         </Card>
 
         <Card className="overflow-hidden">
+          {/* Pagination header */}
+          <div className="px-3 py-2 border-b bg-muted/30 flex flex-wrap items-center gap-3 text-sm">
+            <span className="text-muted-foreground">
+              {rows.length === 0
+                ? "Nenhuma solicitação"
+                : `Exibindo ${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, rows.length)} de ${rows.length}`}
+            </span>
+            <div className="flex items-center gap-1 ml-auto">
+              <Button variant="ghost" size="sm" onClick={() => { setPage(1); setPageInput("1"); }} disabled={page <= 1}>
+                <ChevronsLeft className="size-4" />
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => { const p = Math.max(1, page - 1); setPage(p); setPageInput(String(p)); }} disabled={page <= 1}>
+                <ChevronLeft className="size-4" />
+              </Button>
+              <span className="text-xs text-muted-foreground">Página</span>
+              <Input
+                type="text"
+                inputMode="numeric"
+                value={pageInput}
+                onChange={(e) => setPageInput(e.target.value.replace(/\D/g, ""))}
+                onBlur={() => {
+                  const total = Math.max(1, Math.ceil(rows.length / pageSize));
+                  const p = Math.min(total, Math.max(1, Number(pageInput) || 1));
+                  setPage(p);
+                  setPageInput(String(p));
+                }}
+                onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+                className="h-8 w-14 text-center"
+              />
+              <span className="text-xs text-muted-foreground">de {Math.max(1, Math.ceil(rows.length / pageSize))}</span>
+              <Button variant="ghost" size="sm" onClick={() => { const total = Math.max(1, Math.ceil(rows.length / pageSize)); const p = Math.min(total, page + 1); setPage(p); setPageInput(String(p)); }} disabled={page >= Math.ceil(rows.length / pageSize)}>
+                <ChevronRight className="size-4" />
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => { const p = Math.max(1, Math.ceil(rows.length / pageSize)); setPage(p); setPageInput(String(p)); }} disabled={page >= Math.ceil(rows.length / pageSize)}>
+                <ChevronsRight className="size-4" />
+              </Button>
+              <span className="text-xs text-muted-foreground ml-2">Por página:</span>
+              <Select value={String(pageSize)} onValueChange={(v) => { setPageSize(Number(v)); setPage(1); setPageInput("1"); }}>
+                <SelectTrigger className="h-8 w-20"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {[20, 40, 60, 80, 100, 120].map((n) => (
+                    <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-muted/60 text-muted-foreground">
@@ -242,17 +290,17 @@ export default function SolicitacoesList({ onLogout }: { onLogout: () => void })
                 {rows.length === 0 && !loading && (
                   <tr><td colSpan={10} className="px-3 py-10 text-center text-muted-foreground">Nenhuma solicitação encontrada.</td></tr>
                 )}
-                {rows.map((r) => (
+                {rows.slice((page - 1) * pageSize, page * pageSize).map((r) => (
                   <tr
                     key={r.id_solicitacao}
                     className="border-t hover:bg-muted/40 cursor-pointer transition-colors"
                     onClick={() => handleOpenTpDoc(r)}
                   >
-                    <td className="px-3 py-2 whitespace-nowrap">{fmtDate(r.din_criacao)}</td>
-                    <td className="px-3 py-2 whitespace-nowrap">{fmtDate(r.din_modificacao)}</td>
-                    <td className="px-3 py-2 whitespace-nowrap">{fmtDate(r.din_revisao)}</td>
+                    <td className="px-3 py-2 whitespace-nowrap"><DateTimeCell iso={r.din_criacao} /></td>
+                    <td className="px-3 py-2 whitespace-nowrap"><DateTimeCell iso={r.din_modificacao} /></td>
+                    <td className="px-3 py-2 whitespace-nowrap"><DateTimeCell iso={r.din_revisao} /></td>
                     <td className="px-3 py-2">{r.dsc_tpdocumento || "—"}</td>
-                    <td className="px-3 py-2 font-mono text-xs">{r.num_revisao || "—"}</td>
+                    <td className="px-3 py-2 font-mono text-base font-semibold">{r.num_revisao || "—"}</td>
                     <td className="px-3 py-2">{r.nom_agenteoperacao || "—"}</td>
                     <td className="px-3 py-2">{r.instalacao_nome || "—"}</td>
                     <td className="px-3 py-2">{r.cos_nome || r.cos_id?.trim() || "—"}</td>
