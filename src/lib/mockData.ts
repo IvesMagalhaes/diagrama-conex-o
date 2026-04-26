@@ -1,4 +1,4 @@
-import type { SqlCreds, ListFilters, SolicitacaoRow, SolicitacaoDetail, Anexo, Comentario } from "@/types/electron";
+import type { SqlCreds, ListFilters, SolicitacaoRow, SolicitacaoDetail, Anexo, Comentario, MpoDocumento } from "@/types/electron";
 
 const now = new Date();
 const daysAgo = (n: number) => new Date(now.getTime() - n * 86400000).toISOString();
@@ -72,6 +72,37 @@ export async function mockGetSolicitacao(id: number) {
   // ascending order (oldest first)
   const coments = [...s._coments].sort((a, b) => new Date(a.din_criacao || 0).getTime() - new Date(b.din_criacao || 0).getTime());
   return { ok: true as const, solicitacao: s._detail, anexos: s._anexos, comentarios: coments };
+}
+
+export async function mockListMpo(insId: string): Promise<{ ok: true; rows: MpoDocumento[] }> {
+  await new Promise((r) => setTimeout(r, 150));
+  const sigla = (insId || "").trim().substring(2).trim();
+  if (!sigla) return { ok: true, rows: [] };
+  const rows: MpoDocumento[] = [
+    {
+      id_documentompo: 1,
+      dsc_situacaodocumento: "Vigente",
+      din_modificado: daysAgo(10),
+      id_identificador: `MPO.${sigla}.001`,
+      revisao: "R02",
+      assunto: `Manobras na instalação ${sigla}`,
+      dsc_usuariomodificacao: "Operador ONS",
+      url_editar: `https://mpo.ons.org.br/sites/MPO/Documentos/MPO_${sigla}_001.docx`,
+      url_diagrama: `https://prd-app-nlb25.ons.org.br/OnsMpoDocumentoProviderAppWeb/?MpoApp=true#/DiagramaOperacionalForm/ConjuntoDO/${sigla}001`,
+    },
+    {
+      id_documentompo: 2,
+      dsc_situacaodocumento: "Pré-Operacional",
+      din_modificado: daysAgo(40),
+      id_identificador: `MPO.${sigla}.002`,
+      revisao: "R01",
+      assunto: `Pré-operação de novo bay ${sigla}`,
+      dsc_usuariomodificacao: "Engenheiro PDR",
+      url_editar: `https://mpo.ons.org.br/sites/MPO/Documentos/MPO_${sigla}_002.docx`,
+      url_diagrama: `https://prd-app-nlb25.ons.org.br/OnsMpoDocumentoProviderAppWeb/?MpoApp=true#/DiagramaOperacionalForm/ConjuntoDO/${sigla}002`,
+    },
+  ];
+  return { ok: true, rows };
 }
 
 export async function mockLookups() {

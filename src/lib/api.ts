@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { SqlCreds, ListFilters } from "@/types/electron";
-import { mockListSolicitacoes, mockGetSolicitacao, mockLookups, mockConnect } from "./mockData";
+import { mockListSolicitacoes, mockGetSolicitacao, mockLookups, mockConnect, mockListMpo } from "./mockData";
 
 const isElectron = () => typeof window !== "undefined" && !!window.electronAPI?.isElectron;
 
@@ -30,6 +30,10 @@ export const api = {
   async getSolicitacao(id: number) {
     if (isElectron()) return window.electronAPI!.getSolicitacao(id);
     return mockGetSolicitacao(id);
+  },
+  async listMpo(insId: string) {
+    if (isElectron()) return window.electronAPI!.listMpo(insId);
+    return mockListMpo(insId);
   },
   async lookups() {
     if (isElectron()) return window.electronAPI!.lookups();
