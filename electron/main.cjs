@@ -135,6 +135,10 @@ ipcMain.handle("sql:listSolicitacoes", async (_e, filters = {}) => {
       req.input("insId", sql.Char, filters.insId);
       where += ` AND si.ins_id = @insId`;
     }
+    if (filters.sigla) {
+      req.input("sigla", sql.Char, filters.sigla);
+      where += ` AND si.ins_id = @sigla`;
+    }
     if (filters.crc) {
       req.input("crc", sql.Char, filters.crc);
       where += ` AND s.cos_id = @crc`;

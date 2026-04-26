@@ -55,11 +55,11 @@ All colors MUST be HSL.
     --status-acordo-foreground: 0 0% 100%;
     --status-pendencia: 12 85% 55%;
     --status-pendencia-foreground: 0 0% 100%;
-    --status-excluido: 215 15% 55%;
+    --status-excluido: 0 75% 50%;
     --status-excluido-foreground: 0 0% 100%;
-    --status-solicitado: 212 85% 50%;
+    --status-solicitado: 215 15% 55%;
     --status-solicitado-foreground: 0 0% 100%;
-    --status-distribuido: 265 60% 55%;
+    --status-distribuido: 212 85% 50%;
     --status-distribuido-foreground: 0 0% 100%;
     --status-arquivado: 215 25% 35%;
     --status-arquivado-foreground: 0 0% 100%;

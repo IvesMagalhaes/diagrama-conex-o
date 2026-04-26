@@ -68,6 +68,7 @@ export interface ListFilters {
   tpdocumento?: number[];
   cosId?: string;
   insId?: string;
+  sigla?: string;
   crc?: string;
   dataIni?: string;
   dataFim?: string;
