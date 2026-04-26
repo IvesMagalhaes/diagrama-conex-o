@@ -2,18 +2,19 @@ import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
 import type { SolicitacaoRow, ListFilters } from "@/types/electron";
 import { STATUS_OPTIONS, TPDOC_OPTIONS, TPDOC_MAP } from "@/lib/constants";
-import { fmtDate } from "@/lib/format";
 import { StatusBadge } from "./StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Paperclip, Filter, RotateCw, Database, LogOut, AlertCircle } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Paperclip, Filter, RotateCw, Database, LogOut, AlertCircle, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from "lucide-react";
 import { toast } from "sonner";
 import SolicitacaoDetail from "./SolicitacaoDetail";
 import { Autocomplete } from "./Autocomplete";
 import { DateInputBR } from "./DateInputBR";
+import { DateTimeCell } from "./DateTimeCell";
 
 interface Lookups {
   instituicoes: { nom_agenteoperacao: string }[];
@@ -27,13 +28,19 @@ export default function SolicitacoesList({ onLogout }: { onLogout: () => void })
   const [lookups, setLookups] = useState<Lookups>({ instituicoes: [], instalacoes: [], crcs: [] });
   const [filters, setFilters] = useState<ListFilters>({});
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [pageInput, setPageInput] = useState("1");
 
   async function load(f: ListFilters = filters) {
     setLoading(true);
     const r = await api.listSolicitacoes(f);
     setLoading(false);
-    if (r.ok && r.rows) setRows(r.rows);
-    else toast.error("Erro ao listar", { description: r.error });
+    if (r.ok && r.rows) {
+      setRows(r.rows);
+      setPage(1);
+      setPageInput("1");
+    } else toast.error("Erro ao listar", { description: r.error });
   }
 
   useEffect(() => {
@@ -100,7 +107,7 @@ export default function SolicitacoesList({ onLogout }: { onLogout: () => void })
               <label className="text-xs font-medium text-muted-foreground">Instituição</label>
               <Autocomplete
                 value={filters.cosId}
-                placeholder="Digite 3+ letras (ex: FUR)"
+                placeholder="Digite 3+ caracteres"
                 options={lookups.instituicoes.map((i) => ({ value: i.nom_agenteoperacao, label: i.nom_agenteoperacao }))}
                 onChange={(v) => update("cosId", v)}
               />
@@ -121,7 +128,7 @@ export default function SolicitacoesList({ onLogout }: { onLogout: () => void })
               <label className="text-xs font-medium text-muted-foreground">Sigla</label>
               <Autocomplete
                 value={filters.sigla}
-                placeholder="Digite 3+ letras (ex: ACAA)"
+                placeholder="Digite 3+ caracteres"
                 options={filteredInstalacoes.map((i) => ({
                   value: i.ins_id,
                   label: (i.ins_id || "").trim() || "—",
@@ -134,7 +141,7 @@ export default function SolicitacoesList({ onLogout }: { onLogout: () => void })
               <label className="text-xs font-medium text-muted-foreground">Instalação</label>
               <Autocomplete
                 value={filters.insId}
-                placeholder="Digite 3+ letras (ex: GONÇAL)"
+                placeholder="Digite 3+ caracteres"
                 options={filteredInstalacoes.map((i) => ({
                   value: i.ins_id,
                   label: i.nomecurto,
@@ -210,11 +217,59 @@ export default function SolicitacoesList({ onLogout }: { onLogout: () => void })
           </div>
           <div className="flex justify-end gap-2 mt-4">
             <Button variant="ghost" onClick={handleClear}>Limpar</Button>
-            <Button onClick={handleApply} disabled={loading}>Aplicar filtros</Button>
+            <Button onClick={handleApply} disabled={loading}>Filtrar</Button>
           </div>
         </Card>
 
         <Card className="overflow-hidden">
+          {/* Pagination header */}
+          <div className="px-3 py-2 border-b bg-muted/30 flex flex-wrap items-center gap-3 text-sm">
+            <span className="text-muted-foreground">
+              {rows.length === 0
+                ? "Nenhuma solicitação"
+                : `Exibindo ${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, rows.length)} de ${rows.length}`}
+            </span>
+            <div className="flex items-center gap-1 ml-auto">
+              <Button variant="ghost" size="sm" onClick={() => { setPage(1); setPageInput("1"); }} disabled={page <= 1}>
+                <ChevronsLeft className="size-4" />
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => { const p = Math.max(1, page - 1); setPage(p); setPageInput(String(p)); }} disabled={page <= 1}>
+                <ChevronLeft className="size-4" />
+              </Button>
+              <span className="text-xs text-muted-foreground">Página</span>
+              <Input
+                type="text"
+                inputMode="numeric"
+                value={pageInput}
+                onChange={(e) => setPageInput(e.target.value.replace(/\D/g, ""))}
+                onBlur={() => {
+                  const total = Math.max(1, Math.ceil(rows.length / pageSize));
+                  const p = Math.min(total, Math.max(1, Number(pageInput) || 1));
+                  setPage(p);
+                  setPageInput(String(p));
+                }}
+                onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+                className="h-8 w-14 text-center"
+              />
+              <span className="text-xs text-muted-foreground">de {Math.max(1, Math.ceil(rows.length / pageSize))}</span>
+              <Button variant="ghost" size="sm" onClick={() => { const total = Math.max(1, Math.ceil(rows.length / pageSize)); const p = Math.min(total, page + 1); setPage(p); setPageInput(String(p)); }} disabled={page >= Math.ceil(rows.length / pageSize)}>
+                <ChevronRight className="size-4" />
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => { const p = Math.max(1, Math.ceil(rows.length / pageSize)); setPage(p); setPageInput(String(p)); }} disabled={page >= Math.ceil(rows.length / pageSize)}>
+                <ChevronsRight className="size-4" />
+              </Button>
+              <span className="text-xs text-muted-foreground ml-2">Por página:</span>
+              <Select value={String(pageSize)} onValueChange={(v) => { setPageSize(Number(v)); setPage(1); setPageInput("1"); }}>
+                <SelectTrigger className="h-8 w-20"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {[20, 40, 60, 80, 100, 120].map((n) => (
+                    <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-muted/60 text-muted-foreground">
@@ -235,17 +290,17 @@ export default function SolicitacoesList({ onLogout }: { onLogout: () => void })
                 {rows.length === 0 && !loading && (
                   <tr><td colSpan={10} className="px-3 py-10 text-center text-muted-foreground">Nenhuma solicitação encontrada.</td></tr>
                 )}
-                {rows.map((r) => (
+                {rows.slice((page - 1) * pageSize, page * pageSize).map((r) => (
                   <tr
                     key={r.id_solicitacao}
                     className="border-t hover:bg-muted/40 cursor-pointer transition-colors"
                     onClick={() => handleOpenTpDoc(r)}
                   >
-                    <td className="px-3 py-2 whitespace-nowrap">{fmtDate(r.din_criacao)}</td>
-                    <td className="px-3 py-2 whitespace-nowrap">{fmtDate(r.din_modificacao)}</td>
-                    <td className="px-3 py-2 whitespace-nowrap">{fmtDate(r.din_revisao)}</td>
+                    <td className="px-3 py-2 whitespace-nowrap"><DateTimeCell iso={r.din_criacao} /></td>
+                    <td className="px-3 py-2 whitespace-nowrap"><DateTimeCell iso={r.din_modificacao} /></td>
+                    <td className="px-3 py-2 whitespace-nowrap"><DateTimeCell iso={r.din_revisao} /></td>
                     <td className="px-3 py-2">{r.dsc_tpdocumento || "—"}</td>
-                    <td className="px-3 py-2 font-mono text-xs">{r.num_revisao || "—"}</td>
+                    <td className="px-3 py-2 font-mono text-base font-semibold">{r.num_revisao || "—"}</td>
                     <td className="px-3 py-2">{r.nom_agenteoperacao || "—"}</td>
                     <td className="px-3 py-2">{r.instalacao_nome || "—"}</td>
                     <td className="px-3 py-2">{r.cos_nome || r.cos_id?.trim() || "—"}</td>

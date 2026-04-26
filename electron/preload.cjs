@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   connect: (config) => ipcRenderer.invoke("sql:connect", config),
   listSolicitacoes: (filters) => ipcRenderer.invoke("sql:listSolicitacoes", filters),
   getSolicitacao: (id) => ipcRenderer.invoke("sql:getSolicitacao", id),
+  listMpo: (insId) => ipcRenderer.invoke("sql:listMpo", insId),
   lookups: () => ipcRenderer.invoke("sql:lookups"),
   openExternal: (url) => ipcRenderer.invoke("shell:openExternal", url),
 });

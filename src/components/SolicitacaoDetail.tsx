@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
-import type { Anexo, Comentario, SolicitacaoDetail as Detail } from "@/types/electron";
+import type { Anexo, Comentario, SolicitacaoDetail as Detail, MpoDocumento } from "@/types/electron";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { StatusBadge } from "./StatusBadge";
 import { fmtDate } from "@/lib/format";
-import { Mail, FileText, MessageSquare, Loader2, Building2, MapPin, Radio, AlertTriangle, ExternalLink } from "lucide-react";
+import { DateTimeCell } from "./DateTimeCell";
+import { CopyButton } from "./CopyButton";
+import { Mail, FileText, MessageSquare, Loader2, Building2, MapPin, Radio, AlertTriangle, ExternalLink, ClipboardList, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TPDOC_MAP } from "@/lib/constants";
 
@@ -13,11 +15,24 @@ const SINTEGRE_BASE = "https://sintegre.ons.org.br/sites/diagramasunifilares/Pag
 export default function SolicitacaoDetailModal({ id, onClose }: { id: number; onClose: () => void }) {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<{ solicitacao?: Detail; anexos?: Anexo[]; comentarios?: Comentario[] }>({});
+  const [mpo, setMpo] = useState<MpoDocumento[]>([]);
+  const [mpoLoading, setMpoLoading] = useState(false);
 
   useEffect(() => {
     setLoading(true);
+    setMpo([]);
     api.getSolicitacao(id).then((r) => {
-      if (r.ok) setData({ solicitacao: r.solicitacao, anexos: r.anexos, comentarios: r.comentarios });
+      if (r.ok) {
+        setData({ solicitacao: r.solicitacao, anexos: r.anexos, comentarios: r.comentarios });
+        const insId = r.solicitacao?.ins_id;
+        if (insId) {
+          setMpoLoading(true);
+          api.listMpo(insId).then((m) => {
+            if (m.ok && m.rows) setMpo(m.rows);
+            setMpoLoading(false);
+          });
+        }
+      }
       setLoading(false);
     });
   }, [id]);
@@ -59,7 +74,7 @@ export default function SolicitacaoDetailModal({ id, onClose }: { id: number; on
 
             {/* Bloco solicitante */}
             <section className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
-              <Field label="Data de Criação" value={fmtDate(s.din_criacao, true)} />
+              <Field label="Data de Criação"><DateTimeCell iso={s.din_criacao} /></Field>
               <Field label="Solicitante" value={s.nom_criacao} />
               <Field label="E-mail">
                 <button
@@ -70,7 +85,7 @@ export default function SolicitacaoDetailModal({ id, onClose }: { id: number; on
                 </button>
               </Field>
               <Field label="Status"><StatusBadge id={s.id_tpstatussolicitacao} /></Field>
-              <Field label="Última Modificação" value={fmtDate(s.din_modificacao, true)} />
+              <Field label="Última Modificação"><DateTimeCell iso={s.din_modificacao} /></Field>
             </section>
 
             {/* Bloco instalação */}
@@ -79,8 +94,61 @@ export default function SolicitacaoDetailModal({ id, onClose }: { id: number; on
               <Field label="Instalação" icon={<MapPin className="size-3.5" />} value={s.instalacao_nome || "—"} />
               <Field label="COS ONS" icon={<Radio className="size-3.5" />} value={s.cos_nome || s.cos_id?.trim() || "—"} />
               <Field label="Número da Revisão" value={s.num_revisao || "—"} />
-              <Field label="Data de Revisão" value={fmtDate(s.din_revisao)} />
+              <Field label="Data de Revisão"><DateTimeCell iso={s.din_revisao} /></Field>
               <Field label="Tipo de Diagrama" value={s.dsc_tpdocumento || "—"} />
+            </section>
+
+            {/* MPO */}
+            <section>
+              <h3 className="font-semibold text-sm mb-2 flex items-center gap-2"><ClipboardList className="size-4" /> MPO</h3>
+              {mpoLoading ? (
+                <p className="text-sm text-muted-foreground flex items-center gap-2"><Loader2 className="size-3.5 animate-spin" /> Carregando MPO…</p>
+              ) : mpo.length ? (
+                <div className="overflow-x-auto border rounded-md">
+                  <table className="w-full text-xs">
+                    <thead className="bg-muted/60 text-muted-foreground">
+                      <tr>
+                        <th className="text-left font-medium px-2 py-1.5">Situação</th>
+                        <th className="text-left font-medium px-2 py-1.5">Data</th>
+                        <th className="text-left font-medium px-2 py-1.5">Código</th>
+                        <th className="text-left font-medium px-2 py-1.5">Revisão</th>
+                        <th className="text-left font-medium px-2 py-1.5">Assunto</th>
+                        <th className="text-left font-medium px-2 py-1.5">Autor</th>
+                        <th className="text-left font-medium px-2 py-1.5">Editar MPO</th>
+                        <th className="text-left font-medium px-2 py-1.5">Abrir diagrama</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {mpo.map((m) => (
+                        <tr key={m.id_documentompo} className="border-t">
+                          <td className="px-2 py-1.5">{m.dsc_situacaodocumento || "—"}</td>
+                          <td className="px-2 py-1.5 whitespace-nowrap">{fmtDate(m.din_modificado)}</td>
+                          <td className="px-2 py-1.5 font-mono">{m.id_identificador || "—"}</td>
+                          <td className="px-2 py-1.5 font-mono">{m.revisao || "—"}</td>
+                          <td className="px-2 py-1.5">{m.assunto || "—"}</td>
+                          <td className="px-2 py-1.5">{m.dsc_usuariomodificacao || "—"}</td>
+                          <td className="px-2 py-1.5">
+                            {m.url_editar ? (
+                              <button className="text-primary hover:underline inline-flex items-center gap-1" onClick={() => api.openExternal(m.url_editar!)}>
+                                <Pencil className="size-3" /> Editar
+                              </button>
+                            ) : "—"}
+                          </td>
+                          <td className="px-2 py-1.5">
+                            {m.url_diagrama ? (
+                              <button className="text-primary hover:underline inline-flex items-center gap-1" onClick={() => api.openExternal(m.url_diagrama!)}>
+                                <ExternalLink className="size-3" /> Abrir
+                              </button>
+                            ) : "—"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">Nenhum MPO encontrado para esta instalação.</p>
+              )}
             </section>
 
             {/* Arquivos */}
@@ -110,7 +178,10 @@ export default function SolicitacaoDetailModal({ id, onClose }: { id: number; on
             {/* Motivo + Observações */}
             <section className="grid md:grid-cols-2 gap-4">
               <div className="border rounded-md p-3">
-                <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-1">Motivo de Revisão</h4>
+                <div className="flex items-center justify-between mb-1">
+                  <h4 className="text-xs font-semibold text-muted-foreground uppercase">Motivo de Revisão</h4>
+                  {s.dsc_motivorevisao && <CopyButton text={s.dsc_motivorevisao} label="Copiar motivo de revisão" />}
+                </div>
                 <p className="text-sm whitespace-pre-wrap">{s.dsc_motivorevisao || "—"}</p>
               </div>
               <div className="border rounded-md p-3 space-y-2">
