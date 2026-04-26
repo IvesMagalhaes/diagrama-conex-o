@@ -237,7 +237,7 @@ ipcMain.handle("sql:listMpo", async (_e, insId) => {
   try {
     const p = await ensurePool();
     if (!insId || typeof insId !== "string") return { ok: true, rows: [] };
-    // Strip first 2 chars (UF) from ins_id, trim spaces
+    // Strip first 2 chars (UF) from ins_id, trim spaces (antes e depois)
     const sigla = insId.trim().substring(2).trim();
     if (!sigla) return { ok: true, rows: [] };
     const like = `%${sigla}%`;
@@ -255,7 +255,8 @@ ipcMain.handle("sql:listMpo", async (_e, insId) => {
           CONCAT('https://mpo.ons.org.br', caminho, '/', dsc_nome) AS url_editar,
           CONCAT('https://prd-app-nlb25.ons.org.br/OnsMpoDocumentoProviderAppWeb/?SPHostUrl=https:%2F%2Fmpo.ons.org.br&SPLanguage=pt-BR&SPClientTag=0&SPProductNumber=16.0.5483.1000&SPAppWebUrl=https:%2F%2Fapps-20e8b0d27a0094.appsecm-ons.org.br%2FOnsMpoDocumentoProviderApp&MpoApp=true#/DiagramaOperacionalForm/ConjuntoDO/', id_lista) AS url_diagrama
         FROM mpo.tb_documentosmpo
-        WHERE dsc_situacaodocumento IN ('Vigente', 'Pré-Operacional')
+        WHERE tipodeconteudo LIKE '%Diagrama%'
+          AND dsc_situacaodocumento IN ('Vigente', 'Pré-Operacional')
           AND dsc_nome LIKE @like
         ORDER BY din_modificado DESC
       `);
