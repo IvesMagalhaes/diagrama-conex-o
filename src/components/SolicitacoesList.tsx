@@ -5,7 +5,6 @@ import { STATUS_OPTIONS, TPDOC_OPTIONS, TPDOC_MAP } from "@/lib/constants";
 import { fmtDate } from "@/lib/format";
 import { StatusBadge } from "./StatusBadge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -13,6 +12,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Paperclip, Filter, RotateCw, Database, LogOut, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import SolicitacaoDetail from "./SolicitacaoDetail";
+import { Autocomplete } from "./Autocomplete";
+import { DateInputBR } from "./DateInputBR";
 
 interface Lookups {
   instituicoes: { nom_agenteoperacao: string }[];
@@ -73,8 +74,8 @@ export default function SolicitacoesList({ onLogout }: { onLogout: () => void })
           <div className="flex items-center gap-3">
             <Database className="size-5" />
             <div>
-              <h1 className="font-semibold leading-tight">Solicitações de Diagramas Unifilares</h1>
-              <p className="text-xs opacity-80">ONS · Centro de Relacionamento com Agentes</p>
+              <h1 className="font-semibold leading-tight">Sistema de Diagramas Unifilares</h1>
+              <p className="text-xs opacity-80">ONS · PDR - Gerência de Configurações de Rede</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -94,18 +95,15 @@ export default function SolicitacoesList({ onLogout }: { onLogout: () => void })
             <Filter className="size-4 text-muted-foreground" />
             <h2 className="font-medium text-sm">Filtros</h2>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             <div>
               <label className="text-xs font-medium text-muted-foreground">Instituição</label>
-              <Select value={filters.cosId || "all"} onValueChange={(v) => update("cosId", v === "all" ? undefined : v)}>
-                <SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas</SelectItem>
-                  {lookups.instituicoes.map((i) => (
-                    <SelectItem key={i.nom_agenteoperacao} value={i.nom_agenteoperacao}>{i.nom_agenteoperacao}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Autocomplete
+                value={filters.cosId}
+                placeholder="Digite 3+ letras (ex: FUR)"
+                options={lookups.instituicoes.map((i) => ({ value: i.nom_agenteoperacao, label: i.nom_agenteoperacao }))}
+                onChange={(v) => update("cosId", v)}
+              />
             </div>
             <div>
               <label className="text-xs font-medium text-muted-foreground">COS ONS</label>
@@ -120,16 +118,30 @@ export default function SolicitacoesList({ onLogout }: { onLogout: () => void })
               </Select>
             </div>
             <div>
+              <label className="text-xs font-medium text-muted-foreground">Sigla</label>
+              <Autocomplete
+                value={filters.sigla}
+                placeholder="Digite 3+ letras (ex: ACAA)"
+                options={filteredInstalacoes.map((i) => ({
+                  value: i.ins_id,
+                  label: (i.ins_id || "").trim() || "—",
+                  hint: i.nomecurto,
+                }))}
+                onChange={(v) => update("sigla", v)}
+              />
+            </div>
+            <div>
               <label className="text-xs font-medium text-muted-foreground">Instalação</label>
-              <Select value={filters.insId || "all"} onValueChange={(v) => update("insId", v === "all" ? undefined : v)}>
-                <SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas</SelectItem>
-                  {filteredInstalacoes.map((i) => (
-                    <SelectItem key={i.ins_id} value={i.ins_id}>{i.nomecurto}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Autocomplete
+                value={filters.insId}
+                placeholder="Digite 3+ letras (ex: GONÇAL)"
+                options={filteredInstalacoes.map((i) => ({
+                  value: i.ins_id,
+                  label: i.nomecurto,
+                  hint: (i.ins_id || "").trim(),
+                }))}
+                onChange={(v) => update("insId", v)}
+              />
             </div>
             <div>
               <label className="text-xs font-medium text-muted-foreground">Tipo de Diagrama</label>
@@ -187,15 +199,13 @@ export default function SolicitacoesList({ onLogout }: { onLogout: () => void })
                 </PopoverContent>
               </Popover>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="text-xs font-medium text-muted-foreground">De</label>
-                <Input type="date" value={filters.dataIni?.slice(0, 10) || ""} onChange={(e) => update("dataIni", e.target.value || undefined)} />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-muted-foreground">Até</label>
-                <Input type="date" value={filters.dataFim?.slice(0, 10) || ""} onChange={(e) => update("dataFim", e.target.value || undefined)} />
-              </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Modificado de</label>
+              <DateInputBR value={filters.dataIni} onChange={(v) => update("dataIni", v)} />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Modificado até</label>
+              <DateInputBR value={filters.dataFim} onChange={(v) => update("dataFim", v)} />
             </div>
           </div>
           <div className="flex justify-end gap-2 mt-4">

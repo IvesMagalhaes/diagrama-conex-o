@@ -57,9 +57,11 @@ export async function mockListSolicitacoes(f: ListFilters): Promise<{ ok: boolea
   if (f.tpdocumento?.length) rows = rows.filter((r) => f.tpdocumento!.includes(r.id_tpdocumento));
   if (f.cosId) rows = rows.filter((r) => r.nom_agenteoperacao === f.cosId);
   if (f.insId) rows = rows.filter((r) => r.ins_id === f.insId);
+  if (f.sigla) rows = rows.filter((r) => r.ins_id === f.sigla);
   if (f.crc) rows = rows.filter((r) => r.cos_id === f.crc);
   if (f.dataIni) rows = rows.filter((r) => new Date(r.din_modificacao) >= new Date(f.dataIni!));
   if (f.dataFim) rows = rows.filter((r) => new Date(r.din_modificacao) <= new Date(f.dataFim!));
+  rows.sort((a, b) => new Date(b.din_modificacao).getTime() - new Date(a.din_modificacao).getTime());
   return { ok: true as const, rows };
 }
 
