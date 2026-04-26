@@ -147,7 +147,7 @@ export default function SolicitacaoDetailModal({ id, onClose }: { id: number; on
                   </table>
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">Nenhum MPO encontrado para esta instalação.</p>
+                <p className="text-sm text-muted-foreground">Nenhum diagrama no MPO encontrado para esta instalação.</p>
               )}
             </section>
 
