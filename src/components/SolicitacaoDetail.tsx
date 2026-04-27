@@ -17,10 +17,14 @@ export default function SolicitacaoDetailModal({ id, onClose }: { id: number; on
   const [data, setData] = useState<{ solicitacao?: Detail; anexos?: Anexo[]; comentarios?: Comentario[] }>({});
   const [mpo, setMpo] = useState<MpoDocumento[]>([]);
   const [mpoLoading, setMpoLoading] = useState(false);
+  const [mpoError, setMpoError] = useState<string | null>(null);
+  const [mpoDebug, setMpoDebug] = useState<Record<string, unknown> | null>(null);
 
   useEffect(() => {
     setLoading(true);
     setMpo([]);
+    setMpoError(null);
+    setMpoDebug(null);
     api.getSolicitacao(id).then((r) => {
       if (r.ok) {
         setData({ solicitacao: r.solicitacao, anexos: r.anexos, comentarios: r.comentarios });
@@ -28,7 +32,13 @@ export default function SolicitacaoDetailModal({ id, onClose }: { id: number; on
         if (insId) {
           setMpoLoading(true);
           api.listMpo(insId).then((m) => {
-            if (m.ok && m.rows) setMpo(m.rows);
+            if (m.ok) {
+              setMpo(m.rows || []);
+              setMpoDebug(m.debug || null);
+              if (m.debug) console.info("Diagnóstico MPO", m.debug);
+            } else {
+              setMpoError(m.error || "Erro desconhecido ao consultar MPO.");
+            }
             setMpoLoading(false);
           });
         }
@@ -103,6 +113,8 @@ export default function SolicitacaoDetailModal({ id, onClose }: { id: number; on
               <h3 className="font-semibold text-sm mb-2 flex items-center gap-2"><ClipboardList className="size-4" /> MPO</h3>
               {mpoLoading ? (
                 <p className="text-sm text-muted-foreground flex items-center gap-2"><Loader2 className="size-3.5 animate-spin" /> Carregando MPO…</p>
+              ) : mpoError ? (
+                <p className="text-sm text-status-pendencia">{mpoError}</p>
               ) : mpo.length ? (
                 <div className="overflow-x-auto border rounded-md">
                   <table className="w-full text-xs">
@@ -147,7 +159,14 @@ export default function SolicitacaoDetailModal({ id, onClose }: { id: number; on
                   </table>
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">Nenhum diagrama no MPO encontrado para esta instalação.</p>
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">Nenhum diagrama no MPO encontrado para esta instalação.</p>
+                  {mpoDebug && (
+                    <p className="text-xs text-muted-foreground">
+                      Diagnóstico: ins_id {String(mpoDebug.insId || "—")}, sigla {String(mpoDebug.sigla || "—")}, status válidos {String(mpoDebug.com_status_valido ?? "—")}, sigla no nome {String(mpoDebug.com_sigla_no_nome ?? "—")}.
+                    </p>
+                  )}
+                </div>
               )}
             </section>
 
