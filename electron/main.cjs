@@ -237,10 +237,15 @@ ipcMain.handle("sql:listMpo", async (_e, insId) => {
   try {
     const p = await ensurePool();
     if (!insId || typeof insId !== "string") return { ok: true, rows: [] };
-    // Strip first 2 chars (UF) from ins_id, trim spaces (antes e depois)
-    const sigla = insId.trim().substring(2).trim();
+    const trimmed = insId.trim();
+    // Skip MPO lookup for "Instalação Temporária" (ins_id = 999999)
+    if (trimmed === "999999") return { ok: true, rows: [], debug: { insId, skipped: "temporaria" } };
+    // Strip first 2 chars (UF) from ins_id; sigla is the pure code (no UF, no trailing spaces)
+    const sigla = trimmed.substring(2).trim();
     if (!sigla) return { ok: true, rows: [], debug: { insId, sigla } };
-    const like = `%${sigla}%`;
+    // Match only entries whose dsc_nome ENDS with ".SIGLA" (the last token after the last dot).
+    // Use LIKE '%.SIGLA' to anchor at the end and require the preceding dot.
+    const like = `%.${sigla}`;
     const query = `
         SELECT
           COALESCE(CONVERT(NVARCHAR(128), mpo.id_lista), CONVERT(NVARCHAR(128), mpo.id_identificador), CONVERT(NVARCHAR(128), mpo.dsc_nome)) AS id_documentompo,
@@ -254,28 +259,57 @@ ipcMain.handle("sql:listMpo", async (_e, insId) => {
           CONCAT('https://prd-app-nlb25.ons.org.br/OnsMpoDocumentoProviderAppWeb/?SPHostUrl=https:%2F%2Fmpo.ons.org.br&SPLanguage=pt-BR&SPClientTag=0&SPProductNumber=16.0.5483.1000&SPAppWebUrl=https:%2F%2Fapps-20e8b0d27a0094.appsecm-ons.org.br%2FOnsMpoDocumentoProviderApp&MpoApp=true#/DiagramaOperacionalForm/ConjuntoDO/', mpo.id_lista) AS url_diagrama
         FROM mpo.tb_documentosmpo AS mpo
         WHERE LTRIM(RTRIM(COALESCE(mpo.dsc_situacaodocumento, ''))) IN (N'Vigente', N'Pré-Operacional')
+          AND LTRIM(RTRIM(COALESCE(mpo.tipodeconteudo, ''))) LIKE N'%Diagrama%'
           AND LTRIM(RTRIM(COALESCE(mpo.dsc_nome, ''))) LIKE @like
         ORDER BY mpo.din_modificado DESC
       `;
     const r = await p.request()
       .input("like", sql.NVarChar(100), like)
       .query(query);
-    if (r.recordset.length === 0) {
-      const debug = await p.request()
-        .input("like", sql.NVarChar(100), like)
-        .query(`
-          SELECT
-            SUM(CASE WHEN LTRIM(RTRIM(COALESCE(dsc_situacaodocumento, ''))) IN (N'Vigente', N'Pré-Operacional') THEN 1 ELSE 0 END) AS com_status_valido,
-            SUM(CASE WHEN LTRIM(RTRIM(COALESCE(dsc_nome, ''))) LIKE @like THEN 1 ELSE 0 END) AS com_sigla_no_nome,
-            SUM(CASE WHEN LTRIM(RTRIM(COALESCE(dsc_situacaodocumento, ''))) IN (N'Vigente', N'Pré-Operacional') AND LTRIM(RTRIM(COALESCE(dsc_nome, ''))) LIKE @like THEN 1 ELSE 0 END) AS combinando_filtros
-          FROM mpo.tb_documentosmpo
-        `);
-      return { ok: true, rows: [], debug: { insId, sigla, like, ...debug.recordset[0] } };
-    }
     return { ok: true, rows: r.recordset, debug: { insId, sigla, like, total: r.recordset.length } };
   } catch (err) {
     console.error("[MPO] Falha ao consultar mpo.tb_documentosmpo", { insId, error: err.message });
     return { ok: false, error: `Erro ao consultar MPO: ${err.message}` };
+  }
+});
+
+ipcMain.handle("sql:searchMpo", async (_e, params = {}) => {
+  try {
+    const p = await ensurePool();
+    const codigo = (params.codigo || "").trim();
+    const assunto = (params.assunto || "").trim();
+    if (!codigo && !assunto) return { ok: true, rows: [] };
+    const req = p.request();
+    const conds = [];
+    if (codigo) {
+      req.input("codigo", sql.NVarChar(200), `%${codigo}%`);
+      conds.push("LTRIM(RTRIM(COALESCE(mpo.id_identificador, ''))) LIKE @codigo");
+    }
+    if (assunto) {
+      req.input("assunto", sql.NVarChar(400), `%${assunto}%`);
+      conds.push("LTRIM(RTRIM(COALESCE(mpo.assunto, ''))) LIKE @assunto");
+    }
+    const query = `
+      SELECT TOP 200
+        COALESCE(CONVERT(NVARCHAR(128), mpo.id_lista), CONVERT(NVARCHAR(128), mpo.id_identificador), CONVERT(NVARCHAR(128), mpo.dsc_nome)) AS id_documentompo,
+        mpo.dsc_situacaodocumento,
+        mpo.din_modificado,
+        mpo.id_identificador,
+        mpo.revisao,
+        mpo.assunto,
+        mpo.dsc_usuariomodificacao,
+        CONCAT('https://mpo.ons.org.br', mpo.caminho, '/', mpo.dsc_nome) AS url_editar,
+        CONCAT('https://prd-app-nlb25.ons.org.br/OnsMpoDocumentoProviderAppWeb/?SPHostUrl=https:%2F%2Fmpo.ons.org.br&SPLanguage=pt-BR&SPClientTag=0&SPProductNumber=16.0.5483.1000&SPAppWebUrl=https:%2F%2Fapps-20e8b0d27a0094.appsecm-ons.org.br%2FOnsMpoDocumentoProviderApp&MpoApp=true#/DiagramaOperacionalForm/ConjuntoDO/', mpo.id_lista) AS url_diagrama
+      FROM mpo.tb_documentosmpo AS mpo
+      WHERE LTRIM(RTRIM(COALESCE(mpo.dsc_situacaodocumento, ''))) IN (N'Vigente', N'Pré-Operacional')
+        AND LTRIM(RTRIM(COALESCE(mpo.tipodeconteudo, ''))) LIKE N'%Diagrama%'
+        AND (${conds.join(" AND ")})
+      ORDER BY mpo.din_modificado DESC
+    `;
+    const r = await req.query(query);
+    return { ok: true, rows: r.recordset };
+  } catch (err) {
+    return { ok: false, error: `Erro ao buscar MPO: ${err.message}` };
   }
 });
 
