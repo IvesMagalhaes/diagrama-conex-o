@@ -96,6 +96,7 @@ declare global {
       listSolicitacoes: (f: ListFilters) => Promise<{ ok: boolean; rows?: SolicitacaoRow[]; error?: string }>;
       getSolicitacao: (id: number) => Promise<{ ok: boolean; solicitacao?: SolicitacaoDetail; anexos?: Anexo[]; comentarios?: Comentario[]; error?: string }>;
       listMpo: (insId: string) => Promise<{ ok: boolean; rows?: MpoDocumento[]; error?: string; debug?: Record<string, unknown> }>;
+      searchMpo: (params: { codigo?: string; assunto?: string }) => Promise<{ ok: boolean; rows?: MpoDocumento[]; error?: string }>;
       lookups: () => Promise<{ ok: boolean; instituicoes?: { nom_agenteoperacao: string }[]; instalacoes?: { ins_id: string; nomecurto: string; cos_id: string }[]; crcs?: { cos_id: string; nomecurto: string }[]; error?: string }>;
       openExternal: (url: string) => Promise<boolean>;
     };

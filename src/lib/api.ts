@@ -35,6 +35,11 @@ export const api = {
     if (isElectron()) return window.electronAPI!.listMpo(insId);
     return mockListMpo(insId);
   },
+  async searchMpo(params: { codigo?: string; assunto?: string }) {
+    if (isElectron() && window.electronAPI!.searchMpo) return window.electronAPI!.searchMpo(params);
+    // Fallback no navegador: reaproveita o mock para devolver algo
+    return { ok: true as const, rows: [] };
+  },
   async lookups() {
     if (isElectron()) return window.electronAPI!.lookups();
     return mockLookups();
