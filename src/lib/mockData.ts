@@ -74,7 +74,7 @@ export async function mockGetSolicitacao(id: number) {
   return { ok: true as const, solicitacao: s._detail, anexos: s._anexos, comentarios: coments };
 }
 
-export async function mockListMpo(insId: string): Promise<{ ok: true; rows: MpoDocumento[] }> {
+export async function mockListMpo(insId: string): Promise<{ ok: boolean; rows?: MpoDocumento[]; error?: string; debug?: Record<string, unknown> }> {
   await new Promise((r) => setTimeout(r, 150));
   const sigla = (insId || "").trim().substring(2).trim();
   if (!sigla) return { ok: true, rows: [] };

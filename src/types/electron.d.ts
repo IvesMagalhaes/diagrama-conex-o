@@ -64,7 +64,7 @@ export interface Comentario {
 }
 
 export interface MpoDocumento {
-  id_documentompo: number;
+  id_documentompo: string | number;
   dsc_situacaodocumento: string | null;
   din_modificado: string | null;
   id_identificador: string | null;
@@ -95,7 +95,7 @@ declare global {
       connect: (c: SqlCreds) => Promise<{ ok: boolean; error?: string }>;
       listSolicitacoes: (f: ListFilters) => Promise<{ ok: boolean; rows?: SolicitacaoRow[]; error?: string }>;
       getSolicitacao: (id: number) => Promise<{ ok: boolean; solicitacao?: SolicitacaoDetail; anexos?: Anexo[]; comentarios?: Comentario[]; error?: string }>;
-      listMpo: (insId: string) => Promise<{ ok: boolean; rows?: MpoDocumento[]; error?: string }>;
+      listMpo: (insId: string) => Promise<{ ok: boolean; rows?: MpoDocumento[]; error?: string; debug?: Record<string, unknown> }>;
       lookups: () => Promise<{ ok: boolean; instituicoes?: { nom_agenteoperacao: string }[]; instalacoes?: { ins_id: string; nomecurto: string; cos_id: string }[]; crcs?: { cos_id: string; nomecurto: string }[]; error?: string }>;
       openExternal: (url: string) => Promise<boolean>;
     };
