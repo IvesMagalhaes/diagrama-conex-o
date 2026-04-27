@@ -6,11 +6,20 @@ import { StatusBadge } from "./StatusBadge";
 import { fmtDate } from "@/lib/format";
 import { DateTimeCell } from "./DateTimeCell";
 import { CopyButton } from "./CopyButton";
-import { Mail, FileText, MessageSquare, Loader2, Building2, MapPin, Radio, AlertTriangle, ExternalLink, ClipboardList, Pencil } from "lucide-react";
+import { Mail, FileText, MessageSquare, Loader2, Building2, MapPin, Radio, AlertTriangle, ExternalLink, ClipboardList, Pencil, Search, Hash } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { TPDOC_MAP } from "@/lib/constants";
 
 const SINTEGRE_BASE = "https://sintegre.ons.org.br/sites/diagramasunifilares/Paginas/diagramasunifilares_form.aspx?idDiagramaUnifilar=";
+
+function shortName(full: string | null | undefined): string {
+  if (!full) return "";
+  const parts = full.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "";
+  if (parts.length === 1) return parts[0];
+  return `${parts[0]} ${parts[parts.length - 1]}`;
+}
 
 export default function SolicitacaoDetailModal({ id, onClose }: { id: number; onClose: () => void }) {
   const [loading, setLoading] = useState(true);
@@ -18,27 +27,32 @@ export default function SolicitacaoDetailModal({ id, onClose }: { id: number; on
   const [mpo, setMpo] = useState<MpoDocumento[]>([]);
   const [mpoLoading, setMpoLoading] = useState(false);
   const [mpoError, setMpoError] = useState<string | null>(null);
-  const [mpoDebug, setMpoDebug] = useState<Record<string, unknown> | null>(null);
+
+  // Campos da busca manual MPO (quando nada é encontrado pela sigla)
+  const [mpoCodigo, setMpoCodigo] = useState("");
+  const [mpoAssunto, setMpoAssunto] = useState("");
+  const [mpoSearchRows, setMpoSearchRows] = useState<MpoDocumento[] | null>(null);
+  const [mpoSearchLoading, setMpoSearchLoading] = useState(false);
+  const [mpoSearchError, setMpoSearchError] = useState<string | null>(null);
 
   useEffect(() => {
     setLoading(true);
     setMpo([]);
     setMpoError(null);
-    setMpoDebug(null);
+    setMpoCodigo("");
+    setMpoAssunto("");
+    setMpoSearchRows(null);
+    setMpoSearchError(null);
     api.getSolicitacao(id).then((r) => {
       if (r.ok) {
         setData({ solicitacao: r.solicitacao, anexos: r.anexos, comentarios: r.comentarios });
-        const insId = r.solicitacao?.ins_id;
-        if (insId) {
+        const insId = r.solicitacao?.ins_id?.trim();
+        // Pula MPO para Instalação Temporária (ins_id = 999999)
+        if (insId && insId !== "999999") {
           setMpoLoading(true);
           api.listMpo(insId).then((m) => {
-            if (m.ok) {
-              setMpo(m.rows || []);
-              setMpoDebug(m.debug || null);
-              if (m.debug) console.info("Diagnóstico MPO", m.debug);
-            } else {
-              setMpoError(m.error || "Erro desconhecido ao consultar MPO.");
-            }
+            if (m.ok) setMpo(m.rows || []);
+            else setMpoError(m.error || "Erro desconhecido ao consultar MPO.");
             setMpoLoading(false);
           });
         }
@@ -49,11 +63,23 @@ export default function SolicitacaoDetailModal({ id, onClose }: { id: number; on
 
   const s = data.solicitacao;
   const tpDeprecated = s ? TPDOC_MAP[s.id_tpdocumento]?.deprecated : false;
+  const isTemporaria = s?.ins_id?.trim() === "999999";
 
   function buildMailto(s: Detail) {
     const subject = `Solicitação #${s.id_solicitacao} Diagrama Unifilar ${s.dsc_tpdocumento || ""} de ${s.instalacao_nome || ""}`.replace(/\s+/g, " ").trim();
-    const body = `Prezado ${s.nom_criacao || ""},\n\n`;
+    const nome = shortName(s.nom_criacao);
+    const body = `Prezado(a) ${nome},\n\n`;
     return `mailto:${s.mail_solicitante}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  }
+
+  async function handleSearchMpo() {
+    if (!mpoCodigo.trim() && !mpoAssunto.trim()) return;
+    setMpoSearchLoading(true);
+    setMpoSearchError(null);
+    const r = await api.searchMpo({ codigo: mpoCodigo.trim(), assunto: mpoAssunto.trim() });
+    if (r.ok) setMpoSearchRows(r.rows || []);
+    else setMpoSearchError(r.error || "Erro ao buscar MPO.");
+    setMpoSearchLoading(false);
   }
 
   return (
@@ -99,8 +125,9 @@ export default function SolicitacaoDetailModal({ id, onClose }: { id: number; on
             </section>
 
             {/* Bloco instalação */}
-            <section className="grid grid-cols-2 md:grid-cols-3 gap-4 p-4 bg-muted/40 rounded-md text-sm">
+            <section className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-muted/40 rounded-md text-sm">
               <Field label="Instituição" icon={<Building2 className="size-3.5" />} value={s.nom_agenteoperacao || "—"} />
+              <Field label="Sigla" icon={<Hash className="size-3.5" />} value={isTemporaria ? "—" : (s.ins_id?.trim() || "—")} />
               <Field label="Instalação" icon={<MapPin className="size-3.5" />} value={s.instalacao_nome || "—"} />
               <Field label="COS ONS" icon={<Radio className="size-3.5" />} value={s.cos_nome || s.cos_id?.trim() || "—"} />
               <Field label="Número da Revisão" value={s.num_revisao || "—"} />
@@ -111,61 +138,53 @@ export default function SolicitacaoDetailModal({ id, onClose }: { id: number; on
             {/* MPO */}
             <section>
               <h3 className="font-semibold text-sm mb-2 flex items-center gap-2"><ClipboardList className="size-4" /> MPO</h3>
-              {mpoLoading ? (
+              {isTemporaria ? (
+                <p className="text-sm text-muted-foreground">Instalação temporária — consulta MPO não aplicável.</p>
+              ) : mpoLoading ? (
                 <p className="text-sm text-muted-foreground flex items-center gap-2"><Loader2 className="size-3.5 animate-spin" /> Carregando MPO…</p>
               ) : mpoError ? (
                 <p className="text-sm text-status-pendencia">{mpoError}</p>
               ) : mpo.length ? (
-                <div className="overflow-x-auto border rounded-md">
-                  <table className="w-full text-xs">
-                    <thead className="bg-muted/60 text-muted-foreground">
-                      <tr>
-                        <th className="text-left font-medium px-2 py-1.5">Situação</th>
-                        <th className="text-left font-medium px-2 py-1.5">Data</th>
-                        <th className="text-left font-medium px-2 py-1.5">Código</th>
-                        <th className="text-left font-medium px-2 py-1.5">Revisão</th>
-                        <th className="text-left font-medium px-2 py-1.5">Assunto</th>
-                        <th className="text-left font-medium px-2 py-1.5">Autor</th>
-                        <th className="text-left font-medium px-2 py-1.5">Editar MPO</th>
-                        <th className="text-left font-medium px-2 py-1.5">Diagrama</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {mpo.map((m) => (
-                        <tr key={m.id_documentompo} className="border-t">
-                          <td className="px-2 py-1.5">{m.dsc_situacaodocumento || "—"}</td>
-                          <td className="px-2 py-1.5 whitespace-nowrap">{fmtDate(m.din_modificado)}</td>
-                          <td className="px-2 py-1.5 font-mono">{m.id_identificador || "—"}</td>
-                          <td className="px-2 py-1.5 font-mono">{m.revisao || "—"}</td>
-                          <td className="px-2 py-1.5">{m.assunto || "—"}</td>
-                          <td className="px-2 py-1.5">{m.dsc_usuariomodificacao || "—"}</td>
-                          <td className="px-2 py-1.5">
-                            {m.url_editar ? (
-                              <button className="text-primary hover:underline inline-flex items-center gap-1" onClick={() => api.openExternal(m.url_editar!)}>
-                                <Pencil className="size-3" /> Editar
-                              </button>
-                            ) : "—"}
-                          </td>
-                          <td className="px-2 py-1.5">
-                            {m.url_diagrama ? (
-                              <button className="text-primary hover:underline inline-flex items-center gap-1" onClick={() => api.openExternal(m.url_diagrama!)}>
-                                <ExternalLink className="size-3" /> Abrir
-                              </button>
-                            ) : "—"}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                <MpoTable rows={mpo} />
               ) : (
-                <div className="space-y-1">
+                <div className="space-y-3">
                   <p className="text-sm text-muted-foreground">Nenhum diagrama no MPO encontrado para esta instalação.</p>
-                  {mpoDebug && (
-                    <p className="text-xs text-muted-foreground">
-                      Diagnóstico: ins_id {String(mpoDebug.insId || "—")}, sigla {String(mpoDebug.sigla || "—")}, status válidos {String(mpoDebug.com_status_valido ?? "—")}, sigla no nome {String(mpoDebug.com_sigla_no_nome ?? "—")}.
-                    </p>
-                  )}
+                  <div className="border rounded-md p-3 space-y-2 bg-muted/30">
+                    <p className="text-xs font-medium text-muted-foreground">Buscar manualmente por Código e/ou Assunto:</p>
+                    <div className="flex flex-col md:flex-row gap-2">
+                      <Input
+                        placeholder="Código (id_identificador)"
+                        value={mpoCodigo}
+                        onChange={(e) => setMpoCodigo(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Enter") handleSearchMpo(); }}
+                        className="h-8 text-sm"
+                      />
+                      <Input
+                        placeholder="Assunto"
+                        value={mpoAssunto}
+                        onChange={(e) => setMpoAssunto(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Enter") handleSearchMpo(); }}
+                        className="h-8 text-sm"
+                      />
+                      <Button
+                        size="sm"
+                        onClick={handleSearchMpo}
+                        disabled={mpoSearchLoading || (!mpoCodigo.trim() && !mpoAssunto.trim())}
+                        className="h-8"
+                      >
+                        {mpoSearchLoading ? <Loader2 className="size-3.5 animate-spin" /> : <Search className="size-3.5" />}
+                        <span className="ml-1">Buscar</span>
+                      </Button>
+                    </div>
+                    {mpoSearchError && <p className="text-xs text-status-pendencia">{mpoSearchError}</p>}
+                    {mpoSearchRows !== null && !mpoSearchError && (
+                      mpoSearchRows.length ? (
+                        <div className="pt-2"><MpoTable rows={mpoSearchRows} /></div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">Nenhum resultado para a busca.</p>
+                      )
+                    )}
+                  </div>
                 </div>
               )}
             </section>
@@ -238,6 +257,53 @@ export default function SolicitacaoDetailModal({ id, onClose }: { id: number; on
         )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+function MpoTable({ rows }: { rows: MpoDocumento[] }) {
+  return (
+    <div className="overflow-x-auto border rounded-md">
+      <table className="w-full text-xs">
+        <thead className="bg-muted/60 text-muted-foreground">
+          <tr>
+            <th className="text-left font-medium px-2 py-1.5">Situação</th>
+            <th className="text-left font-medium px-2 py-1.5">Data</th>
+            <th className="text-left font-medium px-2 py-1.5">Código</th>
+            <th className="text-left font-medium px-2 py-1.5">Revisão</th>
+            <th className="text-left font-medium px-2 py-1.5">Assunto</th>
+            <th className="text-left font-medium px-2 py-1.5">Autor</th>
+            <th className="text-left font-medium px-2 py-1.5">Editar MPO</th>
+            <th className="text-left font-medium px-2 py-1.5">Diagrama</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((m) => (
+            <tr key={m.id_documentompo} className="border-t">
+              <td className="px-2 py-1.5">{m.dsc_situacaodocumento || "—"}</td>
+              <td className="px-2 py-1.5 whitespace-nowrap">{fmtDate(m.din_modificado)}</td>
+              <td className="px-2 py-1.5 font-mono">{m.id_identificador || "—"}</td>
+              <td className="px-2 py-1.5 font-mono">{m.revisao || "—"}</td>
+              <td className="px-2 py-1.5">{m.assunto || "—"}</td>
+              <td className="px-2 py-1.5">{m.dsc_usuariomodificacao || "—"}</td>
+              <td className="px-2 py-1.5">
+                {m.url_diagrama ? (
+                  <button className="text-primary hover:underline inline-flex items-center gap-1" onClick={() => api.openExternal(m.url_diagrama!)}>
+                    <Pencil className="size-3" /> Editar
+                  </button>
+                ) : "—"}
+              </td>
+              <td className="px-2 py-1.5">
+                {m.url_editar ? (
+                  <button className="text-primary hover:underline inline-flex items-center gap-1" onClick={() => api.openExternal(m.url_editar!)}>
+                    <ExternalLink className="size-3" /> Abrir
+                  </button>
+                ) : "—"}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
