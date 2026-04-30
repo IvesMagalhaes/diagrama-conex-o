@@ -83,6 +83,7 @@ export default function Statistics({ onClose }: { onClose: () => void }) {
   const [filtroCos, setFiltroCos] = useState<string>("all");
   const [filtroAgente, setFiltroAgente] = useState<string>("all");
   const [filtroTipo, setFiltroTipo] = useState<string>("all");
+  const [ignorarPendencias, setIgnorarPendencias] = useState<boolean>(false);
 
   function applyPreset(p: Preset) {
     setPreset(p);
