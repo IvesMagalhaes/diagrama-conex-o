@@ -240,7 +240,10 @@ export default function Statistics({ onClose }: { onClose: () => void }) {
       .sort((a, b) => b.count - a.count).slice(0, 12),
   [filtered]);
   const porTipo = useMemo(() => groupBy("tipo"), [filtered]);
-  const porUsuario = useMemo(() => groupBy("usuario").filter((x) => x.name !== "—").slice(0, 12), [filtered]);
+  const porUsuario = useMemo(() => groupBy("usuario")
+    .filter((x) => x.name.toLowerCase().startsWith("ons\\"))
+    .map((x) => ({ ...x, name: x.name.substring(4) }))
+    .slice(0, 12), [filtered, ignorarPendencias]);
 
   // Série temporal: análises finalizadas por dia
   const porDia = useMemo(() => {
