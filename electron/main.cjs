@@ -313,6 +313,55 @@ ipcMain.handle("sql:searchMpo", async (_e, params = {}) => {
   }
 });
 
+ipcMain.handle("sql:auditoria", async (_e, params = {}) => {
+  try {
+    const p = await ensurePool();
+    const req = p.request();
+    const conds = ["1=1"];
+    if (params.dataIni) {
+      req.input("dataIni", sql.DateTime, new Date(params.dataIni));
+      conds.push("a.din_evento >= @dataIni");
+    }
+    if (params.dataFim) {
+      req.input("dataFim", sql.DateTime, new Date(params.dataFim));
+      conds.push("a.din_evento <= @dataFim");
+    }
+    const query = `
+      SELECT
+        a.id_auditoria,
+        a.id_solicitacao,
+        a.din_evento,
+        a.nom_agenteoperacao,
+        a.nom_instalacao,
+        a.nom_usuario,
+        a.id_tpstatussolicitacao,
+        ts.dsc_statussolicitacao,
+        s.id_tpdocumento,
+        td.dsc_tpdocumento,
+        s.cos_id,
+        ac.nomecurto AS cos_nome,
+        si.ins_id,
+        d.id_auditoriadetalhe,
+        d.dsc_campoalterado,
+        d.dsc_valorantigo,
+        d.dsc_valornovo
+      FROM DiagramasUnifilares.tb_auditoria a
+      LEFT JOIN DiagramasUnifilares.tb_auditoriadetalhe d ON d.id_auditoria = a.id_auditoria
+      LEFT JOIN DiagramasUnifilares.tb_tpstatussolicitacao ts ON ts.id_tpstatussolicitacao = a.id_tpstatussolicitacao
+      LEFT JOIN DiagramasUnifilares.tb_solicitacao s ON s.id_solicitacao = a.id_solicitacao
+      LEFT JOIN DiagramasUnifilares.tb_tpdocumento td ON td.id_tpdocumento = s.id_tpdocumento
+      LEFT JOIN DiagramasUnifilares.tb_solicitacaoins si ON si.id_solicitacao = s.id_solicitacao
+      LEFT JOIN DiagramasUnifilares.tb_aux_cos ac ON ac.cos_id = s.cos_id
+      WHERE ${conds.join(" AND ")}
+      ORDER BY a.din_evento ASC, d.id_auditoriadetalhe ASC
+    `;
+    const r = await req.query(query);
+    return { ok: true, rows: r.recordset };
+  } catch (err) {
+    return { ok: false, error: `Erro ao consultar auditoria: ${err.message}` };
+  }
+});
+
 ipcMain.handle("shell:openExternal", async (_e, url) => {
   await shell.openExternal(url);
   return true;
