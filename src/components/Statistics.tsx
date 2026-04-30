@@ -461,6 +461,7 @@ export default function Statistics({ onClose }: { onClose: () => void }) {
             </Card>
           </div>
         )}
+        </TooltipProvider>
       </DialogContent>
     </Dialog>
   );
