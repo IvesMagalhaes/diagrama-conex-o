@@ -94,16 +94,6 @@ export interface AuditoriaRow {
   dsc_valorantigo: string | null;
   dsc_valornovo: string | null;
 }
-  id_documentompo: string | number;
-  dsc_situacaodocumento: string | null;
-  din_modificado: string | null;
-  id_identificador: string | null;
-  revisao: string | null;
-  assunto: string | null;
-  dsc_usuariomodificacao: string | null;
-  url_editar: string | null;
-  url_diagrama: string | null;
-}
 
 export interface ListFilters {
   status?: number[];
