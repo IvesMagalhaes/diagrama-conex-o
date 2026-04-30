@@ -265,70 +265,32 @@ export default function Statistics({ onClose }: { onClose: () => void }) {
   function exportExcel() {
     const wb = XLSX.utils.book_new();
 
-    // Sheet 1: Resumo
-    const resumo = [
-      ["Período", `${fmtDateBR(dataIni!)} a ${fmtDateBR(dataFim!)}`],
-      ["Filtro COS", filtroCos],
-      ["Filtro Instituição", filtroAgente],
-      ["Filtro Tipo", filtroTipo],
-      [],
-      ["Métrica", "Valor"],
-      ["Solicitações no período", kpis.totalSolicitacoes],
-      ["Finalizadas (Distribuído)", kpis.finalizadas],
-      ["Em pendência", kpis.pendentes],
-      ["Tempo total acumulado", fmtMs(kpis.tempoTotal)],
-      ["Tempo médio por solicitação finalizada", fmtMs(kpis.tempoMedio)],
-      ["Tempo máximo de uma solicitação", fmtMs(kpis.tempoMax)],
-      ["Tempo médio em 'Em Análise'", fmtMs(kpis.analiseMed)],
-    ];
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(resumo), "Resumo");
-
-    // Sheet 2: Solicitações
-    const sol = filtered.map((s) => ({
-      "ID Solicitação": s.id_solicitacao,
-      "COS ONS": s.cos_nome,
-      "Instituição": s.agente,
-      "Instalação": s.instalacao,
-      "Sigla": s.ins_id,
-      "Tipo": s.tipo,
-      "Último Usuário": s.usuario,
-      "Eventos": s.numEventos,
-      "Início": s.inicio ? new Date(s.inicio).toLocaleString("pt-BR") : "",
-      "Fim": s.fim ? new Date(s.fim).toLocaleString("pt-BR") : "",
-      "Status final": s.finalizado ? "Distribuído" : (s.pendente ? "Pendência" : "Em andamento"),
-      "Tempo total (h)": +(s.totalMs / 3600000).toFixed(2),
-      "Tempo em Análise (h)": +(s.pureAnalysisMs / 3600000).toFixed(2),
-      "Tempo em Pendência (h)": +(s.pendenciaMs / 3600000).toFixed(2),
-    }));
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(sol), "Solicitações");
-
-    // Sheet 3: Eventos brutos
+    // Sheet única "Auditoria" com TODAS as colunas brutas vindas da consulta SQL,
+    // formato tabelar pronto para consumo em Power BI / Excel.
     const evts = rows.map((r) => ({
-      "ID Auditoria": r.id_auditoria,
-      "ID Solicitação": r.id_solicitacao,
-      "Data Evento": r.din_evento ? new Date(r.din_evento).toLocaleString("pt-BR") : "",
-      "Instituição": r.nom_agenteoperacao,
-      "Instalação": r.nom_instalacao,
-      "Usuário": r.nom_usuario,
-      "Status": r.dsc_statussolicitacao,
-      "Tipo Diagrama": r.dsc_tpdocumento,
-      "COS ONS": r.cos_nome,
-      "Campo Alterado": r.dsc_campoalterado,
-      "Valor Antigo": r.dsc_valorantigo,
-      "Valor Novo": r.dsc_valornovo,
+      id_auditoria: r.id_auditoria,
+      id_solicitacao: r.id_solicitacao,
+      din_evento: r.din_evento ? new Date(r.din_evento).toISOString() : "",
+      din_evento_br: r.din_evento ? new Date(r.din_evento).toLocaleString("pt-BR") : "",
+      nom_agenteoperacao: r.nom_agenteoperacao,
+      nom_instalacao: r.nom_instalacao,
+      ins_id: r.ins_id,
+      nom_usuario: r.nom_usuario,
+      id_tpstatussolicitacao: r.id_tpstatussolicitacao,
+      dsc_statussolicitacao: r.dsc_statussolicitacao,
+      id_tpdocumento: r.id_tpdocumento,
+      dsc_tpdocumento: r.dsc_tpdocumento,
+      cos_id: r.cos_id,
+      cos_nome: r.cos_nome,
+      id_auditoriadetalhe: r.id_auditoriadetalhe,
+      dsc_campoalterado: r.dsc_campoalterado,
+      dsc_valorantigo: r.dsc_valorantigo,
+      dsc_valornovo: r.dsc_valornovo,
     }));
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(evts), "Eventos");
-
-    // Sheet 4: Por COS
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(porCos.map((p) => ({
-      "COS ONS": p.name,
-      "Análises": p.count,
-      "Tempo médio (h)": p.tempoMedioH,
-      "Tempo total (h)": p.tempoTotalH,
-    }))), "Por COS");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(evts), "Auditoria");
 
     const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
-    XLSX.writeFile(wb, `estatisticas-diagramas-${ts}.xlsx`);
+    XLSX.writeFile(wb, `auditoria-diagramas-${ts}.xlsx`);
   }
 
   return (
