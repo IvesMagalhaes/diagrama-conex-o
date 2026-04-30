@@ -187,7 +187,8 @@ export default function Statistics({ onClose }: { onClose: () => void }) {
   const kpis = useMemo(() => {
     const finalizados = filtered.filter((s) => s.finalizado);
     const pendentes = filtered.filter((s) => s.pendente);
-    const tempos = finalizados.map((s) => s.totalMs).filter((x) => x > 0);
+    const adj = (s: AnalysisStat) => ignorarPendencias ? Math.max(0, s.totalMs - s.pendenciaMs) : s.totalMs;
+    const tempos = finalizados.map(adj).filter((x) => x > 0);
     const tempoTotal = tempos.reduce((a, b) => a + b, 0);
     const tempoMedio = tempos.length ? tempoTotal / tempos.length : 0;
     const tempoMax = tempos.length ? Math.max(...tempos) : 0;
@@ -203,7 +204,7 @@ export default function Statistics({ onClose }: { onClose: () => void }) {
       analiseTotal,
       analiseMed,
     };
-  }, [filtered]);
+  }, [filtered, ignorarPendencias]);
 
   // Agrupamentos para gráficos
   function groupBy<K extends keyof AnalysisStat>(key: K) {
