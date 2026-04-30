@@ -296,6 +296,7 @@ export default function Statistics({ onClose }: { onClose: () => void }) {
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-6xl max-h-[92vh] overflow-y-auto">
+        <TooltipProvider delayDuration={150}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <BarChart3 className="size-5" /> Estatísticas e Indicadores
