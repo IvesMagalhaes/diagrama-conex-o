@@ -208,12 +208,13 @@ export default function Statistics({ onClose }: { onClose: () => void }) {
 
   // Agrupamentos para gráficos
   function groupBy<K extends keyof AnalysisStat>(key: K) {
+    const adj = (s: AnalysisStat) => ignorarPendencias ? Math.max(0, s.totalMs - s.pendenciaMs) : s.totalMs;
     const map = new Map<string, { count: number; tempoMedio: number; tempoTotal: number }>();
     for (const s of filtered) {
       const k = String(s[key] || "—");
       const cur = map.get(k) || { count: 0, tempoMedio: 0, tempoTotal: 0 };
       cur.count += 1;
-      cur.tempoTotal += s.totalMs;
+      cur.tempoTotal += adj(s);
       map.set(k, cur);
     }
     return Array.from(map.entries()).map(([name, v]) => ({
