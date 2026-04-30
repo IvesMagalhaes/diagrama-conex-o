@@ -3,10 +3,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DateInputBR } from "./DateInputBR";
 import { api } from "@/lib/api";
 import type { AuditoriaRow } from "@/types/electron";
-import { Loader2, BarChart3, Download, RotateCw, Clock, CheckCircle2, AlertCircle, ListChecks, TrendingUp } from "lucide-react";
+import { Loader2, BarChart3, Download, RotateCw, Clock, CheckCircle2, AlertCircle, ListChecks, TrendingUp, Info } from "lucide-react";
 import { toast } from "sonner";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell, Legend, LineChart, Line,
@@ -81,6 +83,7 @@ export default function Statistics({ onClose }: { onClose: () => void }) {
   const [filtroCos, setFiltroCos] = useState<string>("all");
   const [filtroAgente, setFiltroAgente] = useState<string>("all");
   const [filtroTipo, setFiltroTipo] = useState<string>("all");
+  const [ignorarPendencias, setIgnorarPendencias] = useState<boolean>(false);
 
   function applyPreset(p: Preset) {
     setPreset(p);
@@ -184,7 +187,8 @@ export default function Statistics({ onClose }: { onClose: () => void }) {
   const kpis = useMemo(() => {
     const finalizados = filtered.filter((s) => s.finalizado);
     const pendentes = filtered.filter((s) => s.pendente);
-    const tempos = finalizados.map((s) => s.totalMs).filter((x) => x > 0);
+    const adj = (s: AnalysisStat) => ignorarPendencias ? Math.max(0, s.totalMs - s.pendenciaMs) : s.totalMs;
+    const tempos = finalizados.map(adj).filter((x) => x > 0);
     const tempoTotal = tempos.reduce((a, b) => a + b, 0);
     const tempoMedio = tempos.length ? tempoTotal / tempos.length : 0;
     const tempoMax = tempos.length ? Math.max(...tempos) : 0;
@@ -200,16 +204,17 @@ export default function Statistics({ onClose }: { onClose: () => void }) {
       analiseTotal,
       analiseMed,
     };
-  }, [filtered]);
+  }, [filtered, ignorarPendencias]);
 
   // Agrupamentos para gráficos
   function groupBy<K extends keyof AnalysisStat>(key: K) {
+    const adj = (s: AnalysisStat) => ignorarPendencias ? Math.max(0, s.totalMs - s.pendenciaMs) : s.totalMs;
     const map = new Map<string, { count: number; tempoMedio: number; tempoTotal: number }>();
     for (const s of filtered) {
       const k = String(s[key] || "—");
       const cur = map.get(k) || { count: 0, tempoMedio: 0, tempoTotal: 0 };
       cur.count += 1;
-      cur.tempoTotal += s.totalMs;
+      cur.tempoTotal += adj(s);
       map.set(k, cur);
     }
     return Array.from(map.entries()).map(([name, v]) => ({
@@ -235,7 +240,10 @@ export default function Statistics({ onClose }: { onClose: () => void }) {
       .sort((a, b) => b.count - a.count).slice(0, 12),
   [filtered]);
   const porTipo = useMemo(() => groupBy("tipo"), [filtered]);
-  const porUsuario = useMemo(() => groupBy("usuario").filter((x) => x.name !== "—").slice(0, 12), [filtered]);
+  const porUsuario = useMemo(() => groupBy("usuario")
+    .filter((x) => x.name.toLowerCase().startsWith("ons\\"))
+    .map((x) => ({ ...x, name: x.name.substring(4) }))
+    .slice(0, 12), [filtered, ignorarPendencias]);
 
   // Série temporal: análises finalizadas por dia
   const porDia = useMemo(() => {
@@ -257,75 +265,38 @@ export default function Statistics({ onClose }: { onClose: () => void }) {
   function exportExcel() {
     const wb = XLSX.utils.book_new();
 
-    // Sheet 1: Resumo
-    const resumo = [
-      ["Período", `${fmtDateBR(dataIni!)} a ${fmtDateBR(dataFim!)}`],
-      ["Filtro COS", filtroCos],
-      ["Filtro Instituição", filtroAgente],
-      ["Filtro Tipo", filtroTipo],
-      [],
-      ["Métrica", "Valor"],
-      ["Solicitações no período", kpis.totalSolicitacoes],
-      ["Finalizadas (Distribuído)", kpis.finalizadas],
-      ["Em pendência", kpis.pendentes],
-      ["Tempo total acumulado", fmtMs(kpis.tempoTotal)],
-      ["Tempo médio por solicitação finalizada", fmtMs(kpis.tempoMedio)],
-      ["Tempo máximo de uma solicitação", fmtMs(kpis.tempoMax)],
-      ["Tempo médio em 'Em Análise'", fmtMs(kpis.analiseMed)],
-    ];
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(resumo), "Resumo");
-
-    // Sheet 2: Solicitações
-    const sol = filtered.map((s) => ({
-      "ID Solicitação": s.id_solicitacao,
-      "COS ONS": s.cos_nome,
-      "Instituição": s.agente,
-      "Instalação": s.instalacao,
-      "Sigla": s.ins_id,
-      "Tipo": s.tipo,
-      "Último Usuário": s.usuario,
-      "Eventos": s.numEventos,
-      "Início": s.inicio ? new Date(s.inicio).toLocaleString("pt-BR") : "",
-      "Fim": s.fim ? new Date(s.fim).toLocaleString("pt-BR") : "",
-      "Status final": s.finalizado ? "Distribuído" : (s.pendente ? "Pendência" : "Em andamento"),
-      "Tempo total (h)": +(s.totalMs / 3600000).toFixed(2),
-      "Tempo em Análise (h)": +(s.pureAnalysisMs / 3600000).toFixed(2),
-      "Tempo em Pendência (h)": +(s.pendenciaMs / 3600000).toFixed(2),
-    }));
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(sol), "Solicitações");
-
-    // Sheet 3: Eventos brutos
+    // Sheet única "Auditoria" com TODAS as colunas brutas vindas da consulta SQL,
+    // formato tabelar pronto para consumo em Power BI / Excel.
     const evts = rows.map((r) => ({
-      "ID Auditoria": r.id_auditoria,
-      "ID Solicitação": r.id_solicitacao,
-      "Data Evento": r.din_evento ? new Date(r.din_evento).toLocaleString("pt-BR") : "",
-      "Instituição": r.nom_agenteoperacao,
-      "Instalação": r.nom_instalacao,
-      "Usuário": r.nom_usuario,
-      "Status": r.dsc_statussolicitacao,
-      "Tipo Diagrama": r.dsc_tpdocumento,
-      "COS ONS": r.cos_nome,
-      "Campo Alterado": r.dsc_campoalterado,
-      "Valor Antigo": r.dsc_valorantigo,
-      "Valor Novo": r.dsc_valornovo,
+      id_auditoria: r.id_auditoria,
+      id_solicitacao: r.id_solicitacao,
+      din_evento: r.din_evento ? new Date(r.din_evento).toISOString() : "",
+      din_evento_br: r.din_evento ? new Date(r.din_evento).toLocaleString("pt-BR") : "",
+      nom_agenteoperacao: r.nom_agenteoperacao,
+      nom_instalacao: r.nom_instalacao,
+      ins_id: r.ins_id,
+      nom_usuario: r.nom_usuario,
+      id_tpstatussolicitacao: r.id_tpstatussolicitacao,
+      dsc_statussolicitacao: r.dsc_statussolicitacao,
+      id_tpdocumento: r.id_tpdocumento,
+      dsc_tpdocumento: r.dsc_tpdocumento,
+      cos_id: r.cos_id,
+      cos_nome: r.cos_nome,
+      id_auditoriadetalhe: r.id_auditoriadetalhe,
+      dsc_campoalterado: r.dsc_campoalterado,
+      dsc_valorantigo: r.dsc_valorantigo,
+      dsc_valornovo: r.dsc_valornovo,
     }));
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(evts), "Eventos");
-
-    // Sheet 4: Por COS
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(porCos.map((p) => ({
-      "COS ONS": p.name,
-      "Análises": p.count,
-      "Tempo médio (h)": p.tempoMedioH,
-      "Tempo total (h)": p.tempoTotalH,
-    }))), "Por COS");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(evts), "Auditoria");
 
     const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
-    XLSX.writeFile(wb, `estatisticas-diagramas-${ts}.xlsx`);
+    XLSX.writeFile(wb, `auditoria-diagramas-${ts}.xlsx`);
   }
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-6xl max-h-[92vh] overflow-y-auto">
+        <TooltipProvider delayDuration={150}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <BarChart3 className="size-5" /> Estatísticas e Indicadores
@@ -393,6 +364,13 @@ export default function Statistics({ onClose }: { onClose: () => void }) {
               </Select>
             </div>
           </div>
+          <div className="mt-3 flex items-center gap-2">
+            <Checkbox id="ignPend" checked={ignorarPendencias} onCheckedChange={(v) => setIgnorarPendencias(!!v)} />
+            <label htmlFor="ignPend" className="text-sm cursor-pointer flex items-center gap-1.5">
+              Ignorar Pendências
+              <InfoTip text="Quando ativo, o tempo gasto em status 'Pendência' é descontado do tempo total e médio de finalização. Útil para medir apenas o esforço efetivo do analista." />
+            </label>
+          </div>
         </Card>
 
         {loading ? (
@@ -401,14 +379,14 @@ export default function Statistics({ onClose }: { onClose: () => void }) {
           <div className="space-y-4">
             {/* KPIs */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <Kpi icon={<ListChecks className="size-4" />} label="Solicitações no período" value={String(kpis.totalSolicitacoes)} />
-              <Kpi icon={<CheckCircle2 className="size-4 text-emerald-600" />} label="Finalizadas" value={String(kpis.finalizadas)} />
-              <Kpi icon={<AlertCircle className="size-4 text-amber-600" />} label="Em pendência" value={String(kpis.pendentes)} />
-              <Kpi icon={<Clock className="size-4" />} label="Tempo médio (finalização)" value={fmtMs(kpis.tempoMedio)} />
-              <Kpi icon={<TrendingUp className="size-4" />} label="Tempo máximo" value={fmtMs(kpis.tempoMax)} />
-              <Kpi icon={<Clock className="size-4" />} label="Tempo médio em Análise" value={fmtMs(kpis.analiseMed)} />
-              <Kpi icon={<Clock className="size-4" />} label="Tempo total acumulado" value={fmtMs(kpis.tempoTotal)} />
-              <Kpi icon={<BarChart3 className="size-4" />} label="Eventos de auditoria" value={String(rows.length)} />
+              <Kpi icon={<ListChecks className="size-4" />} label="Solicitações no período" value={String(kpis.totalSolicitacoes)} tip="Total de solicitações distintas que tiveram pelo menos um evento de auditoria no período selecionado." />
+              <Kpi icon={<CheckCircle2 className="size-4 text-emerald-600" />} label="Finalizadas" value={String(kpis.finalizadas)} tip="Solicitações cujo último status registrado é 'Distribuído'." />
+              <Kpi icon={<AlertCircle className="size-4 text-amber-600" />} label="Em pendência" value={String(kpis.pendentes)} tip="Solicitações cujo último status registrado é 'Pendência' (aguardando ação do agente)." />
+              <Kpi icon={<BarChart3 className="size-4" />} label="Eventos de auditoria" value={String(rows.length)} tip="Quantidade total de eventos (linhas) retornadas pela consulta de auditoria no período." />
+              <Kpi icon={<Clock className="size-4" />} label="Tempo médio Em Análise" value={fmtMs(kpis.analiseMed)} tip="Soma do tempo gasto em 'Em Análise' por solicitação, dividido pela quantidade de solicitações." />
+              <Kpi icon={<Clock className="size-4" />} label="Tempo médio Finalização" value={fmtMs(kpis.tempoMedio)} tip="Tempo médio entre o primeiro e o último evento das solicitações finalizadas (Distribuído)." />
+              <Kpi icon={<TrendingUp className="size-4" />} label="Tempo máximo" value={fmtMs(kpis.tempoMax)} tip="Maior tempo de finalização registrado entre as solicitações distribuídas no período." />
+              <Kpi icon={<Clock className="size-4" />} label="Tempo total acumulado" value={fmtMs(kpis.tempoTotal)} tip="Soma do tempo de finalização de todas as solicitações distribuídas no período." />
             </div>
 
             {/* Série temporal */}
@@ -483,17 +461,35 @@ export default function Statistics({ onClose }: { onClose: () => void }) {
             </Card>
           </div>
         )}
+        </TooltipProvider>
       </DialogContent>
     </Dialog>
   );
 }
 
-function Kpi({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+function Kpi({ icon, label, value, tip }: { icon: React.ReactNode; label: string; value: string; tip?: string }) {
   return (
     <Card className="p-3">
-      <div className="flex items-center gap-2 text-xs text-muted-foreground">{icon}{label}</div>
+      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        {icon}
+        <span>{label}</span>
+        {tip && <InfoTip text={tip} />}
+      </div>
       <div className="text-xl font-semibold mt-1">{value}</div>
     </Card>
+  );
+}
+
+function InfoTip({ text }: { text: string }) {
+  return (
+    <UITooltip>
+      <TooltipTrigger asChild>
+        <button type="button" className="inline-flex items-center text-muted-foreground hover:text-foreground" aria-label="Mais informações">
+          <Info className="size-3.5" />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent className="max-w-xs text-xs">{text}</TooltipContent>
+    </UITooltip>
   );
 }
 

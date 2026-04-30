@@ -243,9 +243,11 @@ ipcMain.handle("sql:listMpo", async (_e, insId) => {
     // Strip first 2 chars (UF) from ins_id; sigla is the pure code (no UF, no trailing spaces)
     const sigla = trimmed.substring(2).trim();
     if (!sigla) return { ok: true, rows: [], debug: { insId, sigla } };
-    // Match only entries whose dsc_nome ENDS with ".SIGLA" (the last token after the last dot).
-    // Use LIKE '%.SIGLA' to anchor at the end and require the preceding dot.
-    const like = `%.${sigla}`;
+    // O dsc_nome possui sufixo "_Rev.X.pdf" (ex: DU-OI.SE.5MG.LGR_Rev.c.pdf).
+    // O id_identificador é o código limpo terminado na SIGLA (ex: DU-OI.SE.5MG.LGR).
+    // Filtramos pelo id_identificador (termina em ".SIGLA") OU pelo dsc_nome contendo ".SIGLA_".
+    const likeId = `%.${sigla}`;
+    const likeNome = `%.${sigla}\\_%`;
     const query = `
         SELECT
           COALESCE(CONVERT(NVARCHAR(128), mpo.id_lista), CONVERT(NVARCHAR(128), mpo.id_identificador), CONVERT(NVARCHAR(128), mpo.dsc_nome)) AS id_documentompo,
@@ -258,15 +260,16 @@ ipcMain.handle("sql:listMpo", async (_e, insId) => {
           CONCAT('https://mpo.ons.org.br', mpo.caminho, '/', mpo.dsc_nome) AS url_editar,
           CONCAT('https://prd-app-nlb25.ons.org.br/OnsMpoDocumentoProviderAppWeb/?SPHostUrl=https:%2F%2Fmpo.ons.org.br&SPLanguage=pt-BR&SPClientTag=0&SPProductNumber=16.0.5483.1000&SPAppWebUrl=https:%2F%2Fapps-20e8b0d27a0094.appsecm-ons.org.br%2FOnsMpoDocumentoProviderApp&MpoApp=true#/DiagramaOperacionalForm/ConjuntoDO/', mpo.id_lista) AS url_diagrama
         FROM mpo.tb_documentosmpo AS mpo
-        WHERE mpo.dsc_situacaodocumento IN ('Vigente', N'Pré-Operacional')
-          AND mpo.tipodeconteudo LIKE '%Diagrama%'
-          AND mpo.dsc_nome LIKE @like
+        WHERE mpo.dsc_situacaodocumento IN (N'Vigente', N'Pré-Operacional')
+          AND CAST(mpo.tipodeconteudo AS NVARCHAR(MAX)) LIKE N'%Diagrama%'
+          AND (mpo.id_identificador LIKE @likeId OR mpo.dsc_nome LIKE @likeNome ESCAPE '\\')
         ORDER BY mpo.din_modificado DESC
       `;
     const r = await p.request()
-      .input("like", sql.NVarChar(100), like)
+      .input("likeId", sql.NVarChar(100), likeId)
+      .input("likeNome", sql.NVarChar(150), likeNome)
       .query(query);
-    return { ok: true, rows: r.recordset, debug: { insId, sigla, like, total: r.recordset.length } };
+    return { ok: true, rows: r.recordset, debug: { insId, sigla, likeId, likeNome, total: r.recordset.length } };
   } catch (err) {
     console.error("[MPO] Falha ao consultar mpo.tb_documentosmpo", { insId, error: err.message });
     return { ok: false, error: `Erro ao consultar MPO: ${err.message}` };
@@ -301,8 +304,8 @@ ipcMain.handle("sql:searchMpo", async (_e, params = {}) => {
         CONCAT('https://mpo.ons.org.br', mpo.caminho, '/', mpo.dsc_nome) AS url_editar,
         CONCAT('https://prd-app-nlb25.ons.org.br/OnsMpoDocumentoProviderAppWeb/?SPHostUrl=https:%2F%2Fmpo.ons.org.br&SPLanguage=pt-BR&SPClientTag=0&SPProductNumber=16.0.5483.1000&SPAppWebUrl=https:%2F%2Fapps-20e8b0d27a0094.appsecm-ons.org.br%2FOnsMpoDocumentoProviderApp&MpoApp=true#/DiagramaOperacionalForm/ConjuntoDO/', mpo.id_lista) AS url_diagrama
       FROM mpo.tb_documentosmpo AS mpo
-      WHERE mpo.dsc_situacaodocumento IN ('Vigente', N'Pré-Operacional')
-        AND mpo.tipodeconteudo LIKE '%Diagrama%'
+      WHERE mpo.dsc_situacaodocumento IN (N'Vigente', N'Pré-Operacional')
+        AND CAST(mpo.tipodeconteudo AS NVARCHAR(MAX)) LIKE N'%Diagrama%'
         AND (${conds.join(" AND ")})
       ORDER BY mpo.din_modificado DESC
     `;

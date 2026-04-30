@@ -10,7 +10,7 @@ import { Database, Loader2, ShieldCheck } from "lucide-react";
 
 export default function Login({ onConnected }: { onConnected: () => void }) {
   const [host, setHost] = useState("");
-  const [port, setPort] = useState("1433");
+  const [port, setPort] = useState("");
   const [database, setDatabase] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -53,16 +53,16 @@ export default function Login({ onConnected }: { onConnected: () => void }) {
             <div className="grid grid-cols-3 gap-3">
               <div className="col-span-2 space-y-1.5">
                 <Label htmlFor="host">Host</Label>
-                <Input id="host" value={host} onChange={(e) => setHost(e.target.value)} placeholder="sqlserver.empresa.com" required />
+                <Input id="host" value={host} onChange={(e) => setHost(e.target.value)} placeholder="prd-inst..." required />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="port">Porta</Label>
-                <Input id="port" value={port} onChange={(e) => setPort(e.target.value)} required />
+                <Input id="port" value={port} onChange={(e) => setPort(e.target.value)} placeholder="2058" required />
               </div>
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="database">Database / Schema</Label>
-              <Input id="database" value={database} onChange={(e) => setDatabase(e.target.value)} placeholder="ONS_Diagramas" required />
+              <Input id="database" value={database} onChange={(e) => setDatabase(e.target.value)} placeholder="INBOUND..." required />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="username">Usuário</Label>
