@@ -9,9 +9,10 @@ import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
-import { Paperclip, Filter, RotateCw, Database, LogOut, AlertCircle, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from "lucide-react";
+import { Paperclip, Filter, RotateCw, Database, LogOut, AlertCircle, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
 import SolicitacaoDetail from "./SolicitacaoDetail";
+import Statistics from "./Statistics";
 import { Autocomplete } from "./Autocomplete";
 import { DateInputBR } from "./DateInputBR";
 import { DateTimeCell } from "./DateTimeCell";
@@ -31,6 +32,7 @@ export default function SolicitacoesList({ onLogout }: { onLogout: () => void })
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [pageInput, setPageInput] = useState("1");
+  const [showStats, setShowStats] = useState(false);
 
   async function load(f: ListFilters = filters) {
     setLoading(true);
@@ -86,6 +88,9 @@ export default function SolicitacoesList({ onLogout }: { onLogout: () => void })
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Button variant="secondary" size="sm" onClick={() => setShowStats(true)}>
+              <BarChart3 /> Estatísticas
+            </Button>
             <Button variant="secondary" size="sm" onClick={() => load()} disabled={loading}>
               <RotateCw className={loading ? "animate-spin" : ""} /> Atualizar
             </Button>
@@ -325,6 +330,7 @@ export default function SolicitacoesList({ onLogout }: { onLogout: () => void })
       {selectedId !== null && (
         <SolicitacaoDetail id={selectedId} onClose={() => setSelectedId(null)} />
       )}
+      {showStats && <Statistics onClose={() => setShowStats(false)} />}
     </div>
   );
 }
