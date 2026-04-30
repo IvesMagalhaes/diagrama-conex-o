@@ -363,6 +363,13 @@ export default function Statistics({ onClose }: { onClose: () => void }) {
               </Select>
             </div>
           </div>
+          <div className="mt-3 flex items-center gap-2">
+            <Checkbox id="ignPend" checked={ignorarPendencias} onCheckedChange={(v) => setIgnorarPendencias(!!v)} />
+            <label htmlFor="ignPend" className="text-sm cursor-pointer flex items-center gap-1.5">
+              Ignorar Pendências
+              <InfoTip text="Quando ativo, o tempo gasto em status 'Pendência' é descontado do tempo total e médio de finalização. Útil para medir apenas o esforço efetivo do analista." />
+            </label>
+          </div>
         </Card>
 
         {loading ? (
@@ -371,14 +378,14 @@ export default function Statistics({ onClose }: { onClose: () => void }) {
           <div className="space-y-4">
             {/* KPIs */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <Kpi icon={<ListChecks className="size-4" />} label="Solicitações no período" value={String(kpis.totalSolicitacoes)} />
-              <Kpi icon={<CheckCircle2 className="size-4 text-emerald-600" />} label="Finalizadas" value={String(kpis.finalizadas)} />
-              <Kpi icon={<AlertCircle className="size-4 text-amber-600" />} label="Em pendência" value={String(kpis.pendentes)} />
-              <Kpi icon={<Clock className="size-4" />} label="Tempo médio (finalização)" value={fmtMs(kpis.tempoMedio)} />
-              <Kpi icon={<TrendingUp className="size-4" />} label="Tempo máximo" value={fmtMs(kpis.tempoMax)} />
-              <Kpi icon={<Clock className="size-4" />} label="Tempo médio em Análise" value={fmtMs(kpis.analiseMed)} />
-              <Kpi icon={<Clock className="size-4" />} label="Tempo total acumulado" value={fmtMs(kpis.tempoTotal)} />
-              <Kpi icon={<BarChart3 className="size-4" />} label="Eventos de auditoria" value={String(rows.length)} />
+              <Kpi icon={<ListChecks className="size-4" />} label="Solicitações no período" value={String(kpis.totalSolicitacoes)} tip="Total de solicitações distintas que tiveram pelo menos um evento de auditoria no período selecionado." />
+              <Kpi icon={<CheckCircle2 className="size-4 text-emerald-600" />} label="Finalizadas" value={String(kpis.finalizadas)} tip="Solicitações cujo último status registrado é 'Distribuído'." />
+              <Kpi icon={<AlertCircle className="size-4 text-amber-600" />} label="Em pendência" value={String(kpis.pendentes)} tip="Solicitações cujo último status registrado é 'Pendência' (aguardando ação do agente)." />
+              <Kpi icon={<BarChart3 className="size-4" />} label="Eventos de auditoria" value={String(rows.length)} tip="Quantidade total de eventos (linhas) retornadas pela consulta de auditoria no período." />
+              <Kpi icon={<Clock className="size-4" />} label="Tempo médio Em Análise" value={fmtMs(kpis.analiseMed)} tip="Soma do tempo gasto em 'Em Análise' por solicitação, dividido pela quantidade de solicitações." />
+              <Kpi icon={<Clock className="size-4" />} label="Tempo médio Finalização" value={fmtMs(kpis.tempoMedio)} tip="Tempo médio entre o primeiro e o último evento das solicitações finalizadas (Distribuído)." />
+              <Kpi icon={<TrendingUp className="size-4" />} label="Tempo máximo" value={fmtMs(kpis.tempoMax)} tip="Maior tempo de finalização registrado entre as solicitações distribuídas no período." />
+              <Kpi icon={<Clock className="size-4" />} label="Tempo total acumulado" value={fmtMs(kpis.tempoTotal)} tip="Soma do tempo de finalização de todas as solicitações distribuídas no período." />
             </div>
 
             {/* Série temporal */}
