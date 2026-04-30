@@ -10,7 +10,7 @@ import { Database, Loader2, ShieldCheck } from "lucide-react";
 
 export default function Login({ onConnected }: { onConnected: () => void }) {
   const [host, setHost] = useState("");
-  const [port, setPort] = useState("1433");
+  const [port, setPort] = useState("");
   const [database, setDatabase] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
