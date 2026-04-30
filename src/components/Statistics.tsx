@@ -3,10 +3,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DateInputBR } from "./DateInputBR";
 import { api } from "@/lib/api";
 import type { AuditoriaRow } from "@/types/electron";
-import { Loader2, BarChart3, Download, RotateCw, Clock, CheckCircle2, AlertCircle, ListChecks, TrendingUp } from "lucide-react";
+import { Loader2, BarChart3, Download, RotateCw, Clock, CheckCircle2, AlertCircle, ListChecks, TrendingUp, Info } from "lucide-react";
 import { toast } from "sonner";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell, Legend, LineChart, Line,
