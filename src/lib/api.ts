@@ -40,6 +40,10 @@ export const api = {
     // Fallback no navegador: reaproveita o mock para devolver algo
     return { ok: true as const, rows: [] };
   },
+  async auditoria(params: { dataIni?: string; dataFim?: string }) {
+    if (isElectron() && window.electronAPI!.auditoria) return window.electronAPI!.auditoria(params);
+    return { ok: true as const, rows: [] };
+  },
   async lookups() {
     if (isElectron()) return window.electronAPI!.lookups();
     return mockLookups();
