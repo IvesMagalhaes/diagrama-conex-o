@@ -465,12 +465,29 @@ export default function Statistics({ onClose }: { onClose: () => void }) {
   );
 }
 
-function Kpi({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+function Kpi({ icon, label, value, tip }: { icon: React.ReactNode; label: string; value: string; tip?: string }) {
   return (
     <Card className="p-3">
-      <div className="flex items-center gap-2 text-xs text-muted-foreground">{icon}{label}</div>
+      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        {icon}
+        <span>{label}</span>
+        {tip && <InfoTip text={tip} />}
+      </div>
       <div className="text-xl font-semibold mt-1">{value}</div>
     </Card>
+  );
+}
+
+function InfoTip({ text }: { text: string }) {
+  return (
+    <UITooltip>
+      <TooltipTrigger asChild>
+        <button type="button" className="inline-flex items-center text-muted-foreground hover:text-foreground" aria-label="Mais informações">
+          <Info className="size-3.5" />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent className="max-w-xs text-xs">{text}</TooltipContent>
+    </UITooltip>
   );
 }
 
