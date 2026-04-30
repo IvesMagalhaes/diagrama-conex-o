@@ -258,8 +258,8 @@ ipcMain.handle("sql:listMpo", async (_e, insId) => {
           CONCAT('https://mpo.ons.org.br', mpo.caminho, '/', mpo.dsc_nome) AS url_editar,
           CONCAT('https://prd-app-nlb25.ons.org.br/OnsMpoDocumentoProviderAppWeb/?SPHostUrl=https:%2F%2Fmpo.ons.org.br&SPLanguage=pt-BR&SPClientTag=0&SPProductNumber=16.0.5483.1000&SPAppWebUrl=https:%2F%2Fapps-20e8b0d27a0094.appsecm-ons.org.br%2FOnsMpoDocumentoProviderApp&MpoApp=true#/DiagramaOperacionalForm/ConjuntoDO/', mpo.id_lista) AS url_diagrama
         FROM mpo.tb_documentosmpo AS mpo
-        WHERE mpo.dsc_situacaodocumento IN (N'Vigente', N'Pré-Operacional')
-          AND mpo.tipodeconteudo LIKE N'%Diagrama%'
+        WHERE mpo.dsc_situacaodocumento IN ('Vigente', N'Pré-Operacional')
+          AND mpo.tipodeconteudo LIKE '%Diagrama%'
           AND mpo.dsc_nome LIKE @like
         ORDER BY mpo.din_modificado DESC
       `;
@@ -301,8 +301,8 @@ ipcMain.handle("sql:searchMpo", async (_e, params = {}) => {
         CONCAT('https://mpo.ons.org.br', mpo.caminho, '/', mpo.dsc_nome) AS url_editar,
         CONCAT('https://prd-app-nlb25.ons.org.br/OnsMpoDocumentoProviderAppWeb/?SPHostUrl=https:%2F%2Fmpo.ons.org.br&SPLanguage=pt-BR&SPClientTag=0&SPProductNumber=16.0.5483.1000&SPAppWebUrl=https:%2F%2Fapps-20e8b0d27a0094.appsecm-ons.org.br%2FOnsMpoDocumentoProviderApp&MpoApp=true#/DiagramaOperacionalForm/ConjuntoDO/', mpo.id_lista) AS url_diagrama
       FROM mpo.tb_documentosmpo AS mpo
-      WHERE mpo.dsc_situacaodocumento IN (N'Vigente', N'Pré-Operacional')
-        AND mpo.tipodeconteudo LIKE N'%Diagrama%'
+      WHERE mpo.dsc_situacaodocumento IN ('Vigente', N'Pré-Operacional')
+        AND mpo.tipodeconteudo LIKE '%Diagrama%'
         AND (${conds.join(" AND ")})
       ORDER BY mpo.din_modificado DESC
     `;
