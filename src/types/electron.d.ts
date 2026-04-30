@@ -75,6 +75,36 @@ export interface MpoDocumento {
   url_diagrama: string | null;
 }
 
+export interface AuditoriaRow {
+  id_auditoria: number;
+  id_solicitacao: number;
+  din_evento: string;
+  nom_agenteoperacao: string | null;
+  nom_instalacao: string | null;
+  nom_usuario: string | null;
+  id_tpstatussolicitacao: number | null;
+  dsc_statussolicitacao: string | null;
+  id_tpdocumento: number | null;
+  dsc_tpdocumento: string | null;
+  cos_id: string | null;
+  cos_nome: string | null;
+  ins_id: string | null;
+  id_auditoriadetalhe: number | null;
+  dsc_campoalterado: string | null;
+  dsc_valorantigo: string | null;
+  dsc_valornovo: string | null;
+}
+  id_documentompo: string | number;
+  dsc_situacaodocumento: string | null;
+  din_modificado: string | null;
+  id_identificador: string | null;
+  revisao: string | null;
+  assunto: string | null;
+  dsc_usuariomodificacao: string | null;
+  url_editar: string | null;
+  url_diagrama: string | null;
+}
+
 export interface ListFilters {
   status?: number[];
   tpdocumento?: number[];
@@ -97,6 +127,7 @@ declare global {
       getSolicitacao: (id: number) => Promise<{ ok: boolean; solicitacao?: SolicitacaoDetail; anexos?: Anexo[]; comentarios?: Comentario[]; error?: string }>;
       listMpo: (insId: string) => Promise<{ ok: boolean; rows?: MpoDocumento[]; error?: string; debug?: Record<string, unknown> }>;
       searchMpo: (params: { codigo?: string; assunto?: string }) => Promise<{ ok: boolean; rows?: MpoDocumento[]; error?: string }>;
+      auditoria: (params: { dataIni?: string; dataFim?: string }) => Promise<{ ok: boolean; rows?: AuditoriaRow[]; error?: string }>;
       lookups: () => Promise<{ ok: boolean; instituicoes?: { nom_agenteoperacao: string }[]; instalacoes?: { ins_id: string; nomecurto: string; cos_id: string }[]; crcs?: { cos_id: string; nomecurto: string }[]; error?: string }>;
       openExternal: (url: string) => Promise<boolean>;
     };
