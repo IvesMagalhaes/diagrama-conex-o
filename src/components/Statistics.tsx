@@ -215,6 +215,7 @@ export default function Statistics({ onClose }: { onClose: () => void }) {
   const kpis = useMemo(() => {
     const finalizados = filtered.filter((s) => s.finalizado);
     const pendentes = filtered.filter((s) => s.pendente);
+    const deAcordoArr = filtered.filter((s) => s.deAcordo);
     const adj = (s: AnalysisStat) => ignorarPendencias ? Math.max(0, s.totalMs - s.pendenciaMs) : s.totalMs;
     const tempos = finalizados.map(adj).filter((x) => x > 0);
     const tempoTotal = tempos.reduce((a, b) => a + b, 0);
@@ -222,15 +223,27 @@ export default function Statistics({ onClose }: { onClose: () => void }) {
     const tempoMax = tempos.length ? Math.max(...tempos) : 0;
     const analiseTotal = filtered.reduce((a, s) => a + s.pureAnalysisMs, 0);
     const analiseMed = filtered.length ? analiseTotal / filtered.length : 0;
+    // Pendência médias (usar apenas casos com qtd > 0)
+    const pAg = filtered.filter((s) => s.qtdPendAgente > 0);
+    const pOns = filtered.filter((s) => s.qtdPendOns > 0);
+    const pendAgenteMed = pAg.length ? pAg.reduce((a, s) => a + s.pendAgenteMs, 0) / pAg.length : 0;
+    const pendOnsMed = pOns.length ? pOns.reduce((a, s) => a + s.pendOnsMs, 0) / pOns.length : 0;
+    const totalPendAgente = filtered.reduce((a, s) => a + s.qtdPendAgente, 0);
+    const totalPendOns = filtered.reduce((a, s) => a + s.qtdPendOns, 0);
     return {
       totalSolicitacoes: filtered.length,
       finalizadas: finalizados.length,
       pendentes: pendentes.length,
+      deAcordo: deAcordoArr.length,
       tempoTotal,
       tempoMedio,
       tempoMax,
       analiseTotal,
       analiseMed,
+      pendAgenteMed,
+      pendOnsMed,
+      totalPendAgente,
+      totalPendOns,
     };
   }, [filtered, ignorarPendencias]);
 
