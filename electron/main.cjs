@@ -369,3 +369,45 @@ ipcMain.handle("shell:openExternal", async (_e, url) => {
   await shell.openExternal(url);
   return true;
 });
+
+// ----- Carimbo (assinatura PNG/JPEG) persistido localmente -----
+function stampPath() {
+  return path.join(app.getPath("userData"), "carimbo-ons");
+}
+function stampMetaPath() {
+  return path.join(app.getPath("userData"), "carimbo-ons.meta.json");
+}
+
+ipcMain.handle("stamp:load", async () => {
+  try {
+    const file = stampPath();
+    const meta = stampMetaPath();
+    if (!fs.existsSync(file) || !fs.existsSync(meta)) return { ok: true, exists: false };
+    const buf = fs.readFileSync(file);
+    const m = JSON.parse(fs.readFileSync(meta, "utf-8"));
+    const dataUrl = `data:${m.mime};base64,${buf.toString("base64")}`;
+    return { ok: true, exists: true, dataUrl, mime: m.mime, name: m.name || "carimbo" };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+});
+
+ipcMain.handle("stamp:save", async (_e, { dataUrl, name }) => {
+  try {
+    const m = /^data:(image\/(png|jpeg|jpg));base64,(.*)$/.exec(dataUrl || "");
+    if (!m) return { ok: false, error: "Imagem inválida (use PNG ou JPEG)." };
+    const mime = m[1] === "image/jpg" ? "image/jpeg" : m[1];
+    const buf = Buffer.from(m[3], "base64");
+    fs.writeFileSync(stampPath(), buf);
+    fs.writeFileSync(stampMetaPath(), JSON.stringify({ mime, name: name || "carimbo" }), "utf-8");
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+});
+
+ipcMain.handle("stamp:clear", async () => {
+  try { fs.unlinkSync(stampPath()); } catch {}
+  try { fs.unlinkSync(stampMetaPath()); } catch {}
+  return { ok: true };
+});
