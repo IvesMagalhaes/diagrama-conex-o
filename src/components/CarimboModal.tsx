@@ -193,7 +193,7 @@ export default function CarimboModal({ onClose }: { onClose: () => void }) {
         page.drawImage(embedded, { x, y, width: w, height: h });
       }
       const out = await pdfDoc.save();
-      const blob = new Blob([out], { type: "application/pdf" });
+      const blob = new Blob([out as BlobPart], { type: "application/pdf" });
       const baseName = pdfFile.name.replace(/\.pdf$/i, "");
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
