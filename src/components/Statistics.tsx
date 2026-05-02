@@ -506,6 +506,32 @@ export default function Statistics({ onClose }: { onClose: () => void }) {
               </Card>
             </div>
 
+            {/* Pendências */}
+            <Card className="p-3">
+              <h3 className="font-semibold text-sm mb-2 flex items-center gap-1.5">
+                <AlertCircle className="size-4 text-amber-600" /> Análise de Pendências
+                <InfoTip text="Pendência do Agente: status mudou de 'Em Análise' para 'Pendência' (ONS pediu complemento ao agente). Pendência do ONS: status mudou de 'Pendência' para 'Em Análise' (agente respondeu e o ONS retomou)." />
+              </h3>
+              <div className="grid md:grid-cols-2 gap-3">
+                <div>
+                  <h4 className="text-xs font-medium text-muted-foreground mb-1">Quantidade de pendências por COS ONS</h4>
+                  <ChartStackedPend data={pendPorCos} mode="count" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-medium text-muted-foreground mb-1">Quantidade de pendências por Instituição (Top 12)</h4>
+                  <ChartStackedPend data={pendPorAgente} mode="count" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-medium text-muted-foreground mb-1">Tempo de pendência por COS (horas)</h4>
+                  <ChartStackedPend data={pendPorCos} mode="time" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-medium text-muted-foreground mb-1">Tempo de pendência por Instituição (horas)</h4>
+                  <ChartStackedPend data={pendPorAgente} mode="time" />
+                </div>
+              </div>
+            </Card>
+
             {/* Métricas por COS */}
             <Card className="p-3">
               <h3 className="font-semibold text-sm mb-2">Métricas por COS ONS</h3>
