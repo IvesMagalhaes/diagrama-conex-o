@@ -623,3 +623,24 @@ function ChartPie({ data }: { data: { name: string; count: number }[] }) {
     </div>
   );
 }
+
+interface PendDatum { name: string; agente: number; ons: number; tempoAgenteH: number; tempoOnsH: number }
+function ChartStackedPend({ data, mode }: { data: PendDatum[]; mode: "count" | "time" }) {
+  const keyA = mode === "count" ? "agente" : "tempoAgenteH";
+  const keyO = mode === "count" ? "ons" : "tempoOnsH";
+  return (
+    <div className="h-64">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={data} layout="vertical" margin={{ left: 10, right: 10 }}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis type="number" tick={{ fontSize: 11 }} />
+          <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={140} />
+          <Tooltip />
+          <Legend wrapperStyle={{ fontSize: 11 }} />
+          <Bar dataKey={keyA} name="Pend. Agente" stackId="p" fill="#f59e0b" />
+          <Bar dataKey={keyO} name="Pend. ONS" stackId="p" fill="#ef4444" />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
