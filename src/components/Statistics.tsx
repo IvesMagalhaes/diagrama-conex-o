@@ -129,9 +129,14 @@ export default function Statistics({ onClose }: { onClose: () => void }) {
       // Tempos por status: pares (din_evento_atual, din_evento_proximo)
       let pureAnalysisMs = 0;
       let pendenciaMs = 0;
+      let pendAgenteMs = 0;
+      let pendOnsMs = 0;
+      let qtdPendAgente = 0;
+      let qtdPendOns = 0;
       let totalMs = 0;
       let finalizado = false;
       let pendente = false;
+      let deAcordo = false;
       let inicio = evts[0]?.din_evento || "";
       let fim = evts[evts.length - 1]?.din_evento || "";
 
@@ -139,6 +144,7 @@ export default function Statistics({ onClose }: { onClose: () => void }) {
       const ultimoStatus = evts[evts.length - 1]?.dsc_statussolicitacao || "";
       finalizado = ultimoStatus === "Distribuído";
       pendente = ultimoStatus === "Pendência";
+      deAcordo = ultimoStatus === "De Acordo";
 
       // Calcular tempo total: do primeiro evento até último (Distribuído se for o caso)
       if (inicio && fim) totalMs = new Date(fim).getTime() - new Date(inicio).getTime();
@@ -147,11 +153,23 @@ export default function Statistics({ onClose }: { onClose: () => void }) {
       for (let i = 0; i < statusEvts.length; i++) {
         const cur = statusEvts[i];
         const next = statusEvts[i + 1];
-        if (!next) continue;
-        const dt = new Date(next.din_evento).getTime() - new Date(cur.din_evento).getTime();
+        const dt = next ? new Date(next.din_evento).getTime() - new Date(cur.din_evento).getTime() : 0;
         const novoStatus = (cur.dsc_valornovo || "").trim();
-        if (novoStatus === "Em Análise") pureAnalysisMs += dt;
-        else if (novoStatus === "Pendência") pendenciaMs += dt;
+        const antigoStatus = (cur.dsc_valorantigo || "").trim();
+
+        if (next && novoStatus === "Em Análise") pureAnalysisMs += dt;
+        else if (next && novoStatus === "Pendência") pendenciaMs += dt;
+
+        // Pendência do AGENTE: status passou para "Pendência" vindo de "Em Análise"
+        if (novoStatus === "Pendência" && antigoStatus === "Em Análise") {
+          qtdPendAgente += 1;
+          if (next) pendAgenteMs += dt; // tempo até sair de Pendência
+        }
+        // Pendência do ONS: status passou para "Em Análise" vindo de "Pendência"
+        if (novoStatus === "Em Análise" && antigoStatus === "Pendência") {
+          qtdPendOns += 1;
+          if (next) pendOnsMs += dt; // tempo até sair de Em Análise
+        }
       }
 
       // Pegar metadados dominantes (último não nulo)
@@ -167,8 +185,13 @@ export default function Statistics({ onClose }: { onClose: () => void }) {
         totalMs,
         pureAnalysisMs,
         pendenciaMs,
+        pendAgenteMs,
+        pendOnsMs,
+        qtdPendAgente,
+        qtdPendOns,
         finalizado,
         pendente,
+        deAcordo,
         numEventos: evts.length,
         inicio,
         fim,
