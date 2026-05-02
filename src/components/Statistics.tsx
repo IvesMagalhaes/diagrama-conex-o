@@ -65,8 +65,13 @@ interface AnalysisStat {
   totalMs: number;          // Solicitado -> Distribuído (ou último status)
   pureAnalysisMs: number;   // soma de tempos em "Em Análise"
   pendenciaMs: number;      // soma de tempos em "Pendência"
+  pendAgenteMs: number;     // soma de tempos em "Pendência" originada por Em Análise -> Pendência (espera do agente)
+  pendOnsMs: number;        // soma de tempos em "Em Análise" originada por Pendência -> Em Análise (resposta do ONS)
+  qtdPendAgente: number;    // nº de transições Em Análise -> Pendência
+  qtdPendOns: number;       // nº de transições Pendência -> Em Análise
   finalizado: boolean;
   pendente: boolean;
+  deAcordo: boolean;        // último status "De Acordo" (ainda não Distribuído)
   numEventos: number;
   inicio: string;
   fim: string;
