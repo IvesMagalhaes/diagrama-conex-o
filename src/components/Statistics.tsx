@@ -286,6 +286,33 @@ export default function Statistics({ onClose }: { onClose: () => void }) {
     .map((x) => ({ ...x, name: x.name.substring(4) }))
     .slice(0, 12), [filtered, ignorarPendencias]);
 
+  // Pendências por agente / COS
+  function pendGroup<K extends keyof AnalysisStat>(key: K) {
+    const map = new Map<string, { agente: number; ons: number; tempoAgenteMs: number; tempoOnsMs: number }>();
+    for (const s of filtered) {
+      const k = String(s[key] || "—");
+      const cur = map.get(k) || { agente: 0, ons: 0, tempoAgenteMs: 0, tempoOnsMs: 0 };
+      cur.agente += s.qtdPendAgente;
+      cur.ons += s.qtdPendOns;
+      cur.tempoAgenteMs += s.pendAgenteMs;
+      cur.tempoOnsMs += s.pendOnsMs;
+      map.set(k, cur);
+    }
+    return Array.from(map.entries())
+      .map(([name, v]) => ({
+        name,
+        agente: v.agente,
+        ons: v.ons,
+        total: v.agente + v.ons,
+        tempoAgenteH: +(v.tempoAgenteMs / 3600000).toFixed(2),
+        tempoOnsH: +(v.tempoOnsMs / 3600000).toFixed(2),
+      }))
+      .filter((x) => x.total > 0)
+      .sort((a, b) => b.total - a.total);
+  }
+  const pendPorAgente = useMemo(() => pendGroup("agente").slice(0, 12), [filtered]);
+  const pendPorCos = useMemo(() => pendGroup("cos_nome"), [filtered]);
+
   // Série temporal: análises finalizadas por dia
   const porDia = useMemo(() => {
     const m = new Map<string, number>();
