@@ -268,6 +268,7 @@ export default function SolicitacaoDetailModal({ id, onClose }: { id: number; on
           </div>
         )}
       </DialogContent>
+      {carimboOpen && <CarimboModal onClose={() => setCarimboOpen(false)} />}
     </Dialog>
   );
 }
