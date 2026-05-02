@@ -35,6 +35,7 @@ export default function SolicitacaoDetailModal({ id, onClose }: { id: number; on
   const [mpoSearchRows, setMpoSearchRows] = useState<MpoDocumento[] | null>(null);
   const [mpoSearchLoading, setMpoSearchLoading] = useState(false);
   const [mpoSearchError, setMpoSearchError] = useState<string | null>(null);
+  const [carimboOpen, setCarimboOpen] = useState(false);
 
   useEffect(() => {
     setLoading(true);
