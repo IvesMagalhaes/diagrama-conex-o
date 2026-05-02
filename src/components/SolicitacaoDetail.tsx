@@ -6,10 +6,11 @@ import { StatusBadge } from "./StatusBadge";
 import { fmtDate } from "@/lib/format";
 import { DateTimeCell } from "./DateTimeCell";
 import { CopyButton } from "./CopyButton";
-import { Mail, FileText, MessageSquare, Loader2, Building2, MapPin, Radio, AlertTriangle, ExternalLink, ClipboardList, Pencil, Search, Hash } from "lucide-react";
+import { Mail, FileText, MessageSquare, Loader2, Building2, MapPin, Radio, AlertTriangle, ExternalLink, ClipboardList, Pencil, Search, Hash, Stamp, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TPDOC_MAP } from "@/lib/constants";
+import CarimboModal from "./CarimboModal";
 
 const SINTEGRE_BASE = "https://sintegre.ons.org.br/sites/diagramasunifilares/Paginas/diagramasunifilares_form.aspx?idDiagramaUnifilar=";
 
