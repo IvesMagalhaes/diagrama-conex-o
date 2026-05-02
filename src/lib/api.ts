@@ -53,6 +53,26 @@ export const api = {
     window.open(url, "_blank", "noopener");
     return true;
   },
+  async stampLoad() {
+    if (isElectron()) return window.electronAPI!.stampLoad();
+    const dataUrl = localStorage.getItem("carimbo-ons-dataurl");
+    const name = localStorage.getItem("carimbo-ons-name") || "carimbo";
+    if (!dataUrl) return { ok: true as const, exists: false };
+    const mime = (dataUrl.match(/^data:(image\/[a-z]+);/) || [])[1] || "image/png";
+    return { ok: true as const, exists: true, dataUrl, mime, name };
+  },
+  async stampSave(payload: { dataUrl: string; name?: string }) {
+    if (isElectron()) return window.electronAPI!.stampSave(payload);
+    localStorage.setItem("carimbo-ons-dataurl", payload.dataUrl);
+    if (payload.name) localStorage.setItem("carimbo-ons-name", payload.name);
+    return { ok: true as const };
+  },
+  async stampClear() {
+    if (isElectron()) return window.electronAPI!.stampClear();
+    localStorage.removeItem("carimbo-ons-dataurl");
+    localStorage.removeItem("carimbo-ons-name");
+    return { ok: true as const };
+  },
 };
 
 export function useConnected() {
