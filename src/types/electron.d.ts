@@ -120,6 +120,9 @@ declare global {
       auditoria: (params: { dataIni?: string; dataFim?: string }) => Promise<{ ok: boolean; rows?: AuditoriaRow[]; error?: string }>;
       lookups: () => Promise<{ ok: boolean; instituicoes?: { nom_agenteoperacao: string }[]; instalacoes?: { ins_id: string; nomecurto: string; cos_id: string }[]; crcs?: { cos_id: string; nomecurto: string }[]; error?: string }>;
       openExternal: (url: string) => Promise<boolean>;
+      stampLoad: () => Promise<{ ok: boolean; exists?: boolean; dataUrl?: string; mime?: string; name?: string; error?: string }>;
+      stampSave: (payload: { dataUrl: string; name?: string }) => Promise<{ ok: boolean; error?: string }>;
+      stampClear: () => Promise<{ ok: boolean; error?: string }>;
     };
   }
 }

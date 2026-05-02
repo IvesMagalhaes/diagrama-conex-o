@@ -12,4 +12,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   auditoria: (params) => ipcRenderer.invoke("sql:auditoria", params),
   lookups: () => ipcRenderer.invoke("sql:lookups"),
   openExternal: (url) => ipcRenderer.invoke("shell:openExternal", url),
+  stampLoad: () => ipcRenderer.invoke("stamp:load"),
+  stampSave: (payload) => ipcRenderer.invoke("stamp:save", payload),
+  stampClear: () => ipcRenderer.invoke("stamp:clear"),
 });

@@ -6,10 +6,11 @@ import { StatusBadge } from "./StatusBadge";
 import { fmtDate } from "@/lib/format";
 import { DateTimeCell } from "./DateTimeCell";
 import { CopyButton } from "./CopyButton";
-import { Mail, FileText, MessageSquare, Loader2, Building2, MapPin, Radio, AlertTriangle, ExternalLink, ClipboardList, Pencil, Search, Hash } from "lucide-react";
+import { Mail, FileText, MessageSquare, Loader2, Building2, MapPin, Radio, AlertTriangle, ExternalLink, ClipboardList, Pencil, Search, Hash, Stamp, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TPDOC_MAP } from "@/lib/constants";
+import CarimboModal from "./CarimboModal";
 
 const SINTEGRE_BASE = "https://sintegre.ons.org.br/sites/diagramasunifilares/Paginas/diagramasunifilares_form.aspx?idDiagramaUnifilar=";
 
@@ -34,6 +35,7 @@ export default function SolicitacaoDetailModal({ id, onClose }: { id: number; on
   const [mpoSearchRows, setMpoSearchRows] = useState<MpoDocumento[] | null>(null);
   const [mpoSearchLoading, setMpoSearchLoading] = useState(false);
   const [mpoSearchError, setMpoSearchError] = useState<string | null>(null);
+  const [carimboOpen, setCarimboOpen] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -191,7 +193,17 @@ export default function SolicitacaoDetailModal({ id, onClose }: { id: number; on
 
             {/* Arquivos */}
             <section>
-              <h3 className="font-semibold text-sm mb-2 flex items-center gap-2"><FileText className="size-4" /> Arquivos</h3>
+              <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
+                <h3 className="font-semibold text-sm flex items-center gap-2"><FileText className="size-4" /> Arquivos</h3>
+                <div className="flex items-center gap-2">
+                  <Button size="sm" variant="outline" onClick={() => setCarimboOpen(true)}>
+                    <Stamp className="size-3.5" /> Carimbo ONS
+                  </Button>
+                  <Button size="sm" variant="outline" disabled className="opacity-50 cursor-not-allowed" title="Funcionalidade em breve">
+                    <Sparkles className="size-3.5" /> Análise Copilot
+                  </Button>
+                </div>
+              </div>
               {data.anexos?.length ? (
                 <ul className="divide-y border rounded-md">
                   {data.anexos.map((a) => (
@@ -256,6 +268,7 @@ export default function SolicitacaoDetailModal({ id, onClose }: { id: number; on
           </div>
         )}
       </DialogContent>
+      {carimboOpen && <CarimboModal onClose={() => setCarimboOpen(false)} />}
     </Dialog>
   );
 }

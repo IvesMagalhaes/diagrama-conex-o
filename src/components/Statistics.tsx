@@ -65,8 +65,13 @@ interface AnalysisStat {
   totalMs: number;          // Solicitado -> Distribuído (ou último status)
   pureAnalysisMs: number;   // soma de tempos em "Em Análise"
   pendenciaMs: number;      // soma de tempos em "Pendência"
+  pendAgenteMs: number;     // soma de tempos em "Pendência" originada por Em Análise -> Pendência (espera do agente)
+  pendOnsMs: number;        // soma de tempos em "Em Análise" originada por Pendência -> Em Análise (resposta do ONS)
+  qtdPendAgente: number;    // nº de transições Em Análise -> Pendência
+  qtdPendOns: number;       // nº de transições Pendência -> Em Análise
   finalizado: boolean;
   pendente: boolean;
+  deAcordo: boolean;        // último status "De Acordo" (ainda não Distribuído)
   numEventos: number;
   inicio: string;
   fim: string;
@@ -124,9 +129,14 @@ export default function Statistics({ onClose }: { onClose: () => void }) {
       // Tempos por status: pares (din_evento_atual, din_evento_proximo)
       let pureAnalysisMs = 0;
       let pendenciaMs = 0;
+      let pendAgenteMs = 0;
+      let pendOnsMs = 0;
+      let qtdPendAgente = 0;
+      let qtdPendOns = 0;
       let totalMs = 0;
       let finalizado = false;
       let pendente = false;
+      let deAcordo = false;
       let inicio = evts[0]?.din_evento || "";
       let fim = evts[evts.length - 1]?.din_evento || "";
 
@@ -134,6 +144,7 @@ export default function Statistics({ onClose }: { onClose: () => void }) {
       const ultimoStatus = evts[evts.length - 1]?.dsc_statussolicitacao || "";
       finalizado = ultimoStatus === "Distribuído";
       pendente = ultimoStatus === "Pendência";
+      deAcordo = ultimoStatus === "De Acordo";
 
       // Calcular tempo total: do primeiro evento até último (Distribuído se for o caso)
       if (inicio && fim) totalMs = new Date(fim).getTime() - new Date(inicio).getTime();
@@ -142,11 +153,23 @@ export default function Statistics({ onClose }: { onClose: () => void }) {
       for (let i = 0; i < statusEvts.length; i++) {
         const cur = statusEvts[i];
         const next = statusEvts[i + 1];
-        if (!next) continue;
-        const dt = new Date(next.din_evento).getTime() - new Date(cur.din_evento).getTime();
+        const dt = next ? new Date(next.din_evento).getTime() - new Date(cur.din_evento).getTime() : 0;
         const novoStatus = (cur.dsc_valornovo || "").trim();
-        if (novoStatus === "Em Análise") pureAnalysisMs += dt;
-        else if (novoStatus === "Pendência") pendenciaMs += dt;
+        const antigoStatus = (cur.dsc_valorantigo || "").trim();
+
+        if (next && novoStatus === "Em Análise") pureAnalysisMs += dt;
+        else if (next && novoStatus === "Pendência") pendenciaMs += dt;
+
+        // Pendência do AGENTE: status passou para "Pendência" vindo de "Em Análise"
+        if (novoStatus === "Pendência" && antigoStatus === "Em Análise") {
+          qtdPendAgente += 1;
+          if (next) pendAgenteMs += dt; // tempo até sair de Pendência
+        }
+        // Pendência do ONS: status passou para "Em Análise" vindo de "Pendência"
+        if (novoStatus === "Em Análise" && antigoStatus === "Pendência") {
+          qtdPendOns += 1;
+          if (next) pendOnsMs += dt; // tempo até sair de Em Análise
+        }
       }
 
       // Pegar metadados dominantes (último não nulo)
@@ -162,8 +185,13 @@ export default function Statistics({ onClose }: { onClose: () => void }) {
         totalMs,
         pureAnalysisMs,
         pendenciaMs,
+        pendAgenteMs,
+        pendOnsMs,
+        qtdPendAgente,
+        qtdPendOns,
         finalizado,
         pendente,
+        deAcordo,
         numEventos: evts.length,
         inicio,
         fim,
@@ -187,6 +215,7 @@ export default function Statistics({ onClose }: { onClose: () => void }) {
   const kpis = useMemo(() => {
     const finalizados = filtered.filter((s) => s.finalizado);
     const pendentes = filtered.filter((s) => s.pendente);
+    const deAcordoArr = filtered.filter((s) => s.deAcordo);
     const adj = (s: AnalysisStat) => ignorarPendencias ? Math.max(0, s.totalMs - s.pendenciaMs) : s.totalMs;
     const tempos = finalizados.map(adj).filter((x) => x > 0);
     const tempoTotal = tempos.reduce((a, b) => a + b, 0);
@@ -194,15 +223,27 @@ export default function Statistics({ onClose }: { onClose: () => void }) {
     const tempoMax = tempos.length ? Math.max(...tempos) : 0;
     const analiseTotal = filtered.reduce((a, s) => a + s.pureAnalysisMs, 0);
     const analiseMed = filtered.length ? analiseTotal / filtered.length : 0;
+    // Pendência médias (usar apenas casos com qtd > 0)
+    const pAg = filtered.filter((s) => s.qtdPendAgente > 0);
+    const pOns = filtered.filter((s) => s.qtdPendOns > 0);
+    const pendAgenteMed = pAg.length ? pAg.reduce((a, s) => a + s.pendAgenteMs, 0) / pAg.length : 0;
+    const pendOnsMed = pOns.length ? pOns.reduce((a, s) => a + s.pendOnsMs, 0) / pOns.length : 0;
+    const totalPendAgente = filtered.reduce((a, s) => a + s.qtdPendAgente, 0);
+    const totalPendOns = filtered.reduce((a, s) => a + s.qtdPendOns, 0);
     return {
       totalSolicitacoes: filtered.length,
       finalizadas: finalizados.length,
       pendentes: pendentes.length,
+      deAcordo: deAcordoArr.length,
       tempoTotal,
       tempoMedio,
       tempoMax,
       analiseTotal,
       analiseMed,
+      pendAgenteMed,
+      pendOnsMed,
+      totalPendAgente,
+      totalPendOns,
     };
   }, [filtered, ignorarPendencias]);
 
@@ -244,6 +285,33 @@ export default function Statistics({ onClose }: { onClose: () => void }) {
     .filter((x) => x.name.toLowerCase().startsWith("ons\\"))
     .map((x) => ({ ...x, name: x.name.substring(4) }))
     .slice(0, 12), [filtered, ignorarPendencias]);
+
+  // Pendências por agente / COS
+  function pendGroup<K extends keyof AnalysisStat>(key: K) {
+    const map = new Map<string, { agente: number; ons: number; tempoAgenteMs: number; tempoOnsMs: number }>();
+    for (const s of filtered) {
+      const k = String(s[key] || "—");
+      const cur = map.get(k) || { agente: 0, ons: 0, tempoAgenteMs: 0, tempoOnsMs: 0 };
+      cur.agente += s.qtdPendAgente;
+      cur.ons += s.qtdPendOns;
+      cur.tempoAgenteMs += s.pendAgenteMs;
+      cur.tempoOnsMs += s.pendOnsMs;
+      map.set(k, cur);
+    }
+    return Array.from(map.entries())
+      .map(([name, v]) => ({
+        name,
+        agente: v.agente,
+        ons: v.ons,
+        total: v.agente + v.ons,
+        tempoAgenteH: +(v.tempoAgenteMs / 3600000).toFixed(2),
+        tempoOnsH: +(v.tempoOnsMs / 3600000).toFixed(2),
+      }))
+      .filter((x) => x.total > 0)
+      .sort((a, b) => b.total - a.total);
+  }
+  const pendPorAgente = useMemo(() => pendGroup("agente").slice(0, 12), [filtered]);
+  const pendPorCos = useMemo(() => pendGroup("cos_nome"), [filtered]);
 
   // Série temporal: análises finalizadas por dia
   const porDia = useMemo(() => {
@@ -382,11 +450,16 @@ export default function Statistics({ onClose }: { onClose: () => void }) {
               <Kpi icon={<ListChecks className="size-4" />} label="Solicitações no período" value={String(kpis.totalSolicitacoes)} tip="Total de solicitações distintas que tiveram pelo menos um evento de auditoria no período selecionado." />
               <Kpi icon={<CheckCircle2 className="size-4 text-emerald-600" />} label="Finalizadas" value={String(kpis.finalizadas)} tip="Solicitações cujo último status registrado é 'Distribuído'." />
               <Kpi icon={<AlertCircle className="size-4 text-amber-600" />} label="Em pendência" value={String(kpis.pendentes)} tip="Solicitações cujo último status registrado é 'Pendência' (aguardando ação do agente)." />
+              <Kpi icon={<CheckCircle2 className="size-4 text-blue-600" />} label="De Acordo (não distribuídas)" value={String(kpis.deAcordo)} tip="Solicitações cujo último status é 'De Acordo' — aprovadas pelo analista mas ainda não distribuídas oficialmente." />
               <Kpi icon={<BarChart3 className="size-4" />} label="Eventos de auditoria" value={String(rows.length)} tip="Quantidade total de eventos (linhas) retornadas pela consulta de auditoria no período." />
               <Kpi icon={<Clock className="size-4" />} label="Tempo médio Em Análise" value={fmtMs(kpis.analiseMed)} tip="Soma do tempo gasto em 'Em Análise' por solicitação, dividido pela quantidade de solicitações." />
               <Kpi icon={<Clock className="size-4" />} label="Tempo médio Finalização" value={fmtMs(kpis.tempoMedio)} tip="Tempo médio entre o primeiro e o último evento das solicitações finalizadas (Distribuído)." />
               <Kpi icon={<TrendingUp className="size-4" />} label="Tempo máximo" value={fmtMs(kpis.tempoMax)} tip="Maior tempo de finalização registrado entre as solicitações distribuídas no período." />
               <Kpi icon={<Clock className="size-4" />} label="Tempo total acumulado" value={fmtMs(kpis.tempoTotal)} tip="Soma do tempo de finalização de todas as solicitações distribuídas no período." />
+              <Kpi icon={<AlertCircle className="size-4 text-amber-600" />} label="Pendências do Agente" value={String(kpis.totalPendAgente)} tip="Quantidade de transições 'Em Análise → Pendência' (vezes em que o ONS devolveu para o agente complementar)." />
+              <Kpi icon={<AlertCircle className="size-4 text-rose-600" />} label="Pendências do ONS" value={String(kpis.totalPendOns)} tip="Quantidade de transições 'Pendência → Em Análise' (vezes em que o agente respondeu e o ONS retomou a análise)." />
+              <Kpi icon={<Clock className="size-4 text-amber-600" />} label="Tempo médio Pend. Agente" value={fmtMs(kpis.pendAgenteMed)} tip="Tempo médio que cada solicitação ficou em 'Pendência' aguardando o agente, considerando só solicitações que tiveram pelo menos uma pendência do agente." />
+              <Kpi icon={<Clock className="size-4 text-rose-600" />} label="Tempo médio Pend. ONS" value={fmtMs(kpis.pendOnsMed)} tip="Tempo médio que o ONS levou em 'Em Análise' após o agente responder uma pendência, considerando só solicitações com pelo menos uma resposta de pendência." />
             </div>
 
             {/* Série temporal */}
@@ -432,6 +505,32 @@ export default function Statistics({ onClose }: { onClose: () => void }) {
                 <ChartBar data={porUsuario} dataKey="count" name="Análises" color={COLORS[4]} />
               </Card>
             </div>
+
+            {/* Pendências */}
+            <Card className="p-3">
+              <h3 className="font-semibold text-sm mb-2 flex items-center gap-1.5">
+                <AlertCircle className="size-4 text-amber-600" /> Análise de Pendências
+                <InfoTip text="Pendência do Agente: status mudou de 'Em Análise' para 'Pendência' (ONS pediu complemento ao agente). Pendência do ONS: status mudou de 'Pendência' para 'Em Análise' (agente respondeu e o ONS retomou)." />
+              </h3>
+              <div className="grid md:grid-cols-2 gap-3">
+                <div>
+                  <h4 className="text-xs font-medium text-muted-foreground mb-1">Quantidade de pendências por COS ONS</h4>
+                  <ChartStackedPend data={pendPorCos} mode="count" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-medium text-muted-foreground mb-1">Quantidade de pendências por Instituição (Top 12)</h4>
+                  <ChartStackedPend data={pendPorAgente} mode="count" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-medium text-muted-foreground mb-1">Tempo de pendência por COS (horas)</h4>
+                  <ChartStackedPend data={pendPorCos} mode="time" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-medium text-muted-foreground mb-1">Tempo de pendência por Instituição (horas)</h4>
+                  <ChartStackedPend data={pendPorAgente} mode="time" />
+                </div>
+              </div>
+            </Card>
 
             {/* Métricas por COS */}
             <Card className="p-3">
@@ -520,6 +619,27 @@ function ChartPie({ data }: { data: { name: string; count: number }[] }) {
           <Tooltip />
           <Legend />
         </PieChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+interface PendDatum { name: string; agente: number; ons: number; tempoAgenteH: number; tempoOnsH: number }
+function ChartStackedPend({ data, mode }: { data: PendDatum[]; mode: "count" | "time" }) {
+  const keyA = mode === "count" ? "agente" : "tempoAgenteH";
+  const keyO = mode === "count" ? "ons" : "tempoOnsH";
+  return (
+    <div className="h-64">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={data} layout="vertical" margin={{ left: 10, right: 10 }}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis type="number" tick={{ fontSize: 11 }} />
+          <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={140} />
+          <Tooltip />
+          <Legend wrapperStyle={{ fontSize: 11 }} />
+          <Bar dataKey={keyA} name="Pend. Agente" stackId="p" fill="#f59e0b" />
+          <Bar dataKey={keyO} name="Pend. ONS" stackId="p" fill="#ef4444" />
+        </BarChart>
       </ResponsiveContainer>
     </div>
   );
