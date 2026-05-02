@@ -6,12 +6,10 @@ import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { Rnd } from "react-rnd";
 import { PDFDocument } from "pdf-lib";
-// @ts-expect-error - tipos do worker virtual
 import * as pdfjsLib from "pdfjs-dist/build/pdf.mjs";
-// @ts-expect-error - import como URL via Vite (?url) para o worker
 import pdfWorker from "pdfjs-dist/build/pdf.worker.mjs?url";
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
+(pdfjsLib as unknown as { GlobalWorkerOptions: { workerSrc: string } }).GlobalWorkerOptions.workerSrc = pdfWorker;
 
 interface PageStamp {
   pageIndex: number;
