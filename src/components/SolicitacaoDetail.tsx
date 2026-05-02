@@ -193,7 +193,17 @@ export default function SolicitacaoDetailModal({ id, onClose }: { id: number; on
 
             {/* Arquivos */}
             <section>
-              <h3 className="font-semibold text-sm mb-2 flex items-center gap-2"><FileText className="size-4" /> Arquivos</h3>
+              <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
+                <h3 className="font-semibold text-sm flex items-center gap-2"><FileText className="size-4" /> Arquivos</h3>
+                <div className="flex items-center gap-2">
+                  <Button size="sm" variant="outline" onClick={() => setCarimboOpen(true)}>
+                    <Stamp className="size-3.5" /> Carimbo ONS
+                  </Button>
+                  <Button size="sm" variant="outline" disabled className="opacity-50 cursor-not-allowed" title="Funcionalidade em breve">
+                    <Sparkles className="size-3.5" /> Análise Copilot
+                  </Button>
+                </div>
+              </div>
               {data.anexos?.length ? (
                 <ul className="divide-y border rounded-md">
                   {data.anexos.map((a) => (
