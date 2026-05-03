@@ -23,6 +23,17 @@ export const api = {
     localStorage.setItem("sql-connected", "1");
     return mockConnect(c);
   },
+  async authLogin(login: string): Promise<{ ok: boolean; user?: AppUser; error?: string; mode?: string }> {
+    if (isElectron()) return window.electronAPI!.authLogin({ login });
+    // Mock no preview web: aceita qualquer coisa, retorna usuário fake
+    const term = login.trim();
+    if (!term) return { ok: false, error: "Informe o login ou e-mail." };
+    return { ok: true, user: {
+      lgn_usuario: term.includes("@") ? `ons\\${term.split("@")[0]}` : `ons\\${term}`,
+      mail_usuario: term.includes("@") ? term : `${term}@ons.org.br`,
+      nom_usuario: "Usuário Demo ONS",
+    }};
+  },
   async listSolicitacoes(f: ListFilters) {
     if (isElectron()) return window.electronAPI!.listSolicitacoes(f);
     return mockListSolicitacoes(f);
