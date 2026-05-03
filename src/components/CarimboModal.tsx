@@ -33,7 +33,7 @@ interface RenderedPage {
 const DEFAULT_W = 180;
 const DEFAULT_H = 90;
 
-export default function CarimboModal({ onClose }: { onClose: () => void }) {
+export default function CarimboModal({ onClose, onStamped }: { onClose: () => void; onStamped?: () => void }) {
   const [stampDataUrl, setStampDataUrl] = useState<string | null>(null);
   const [stampLoading, setStampLoading] = useState(true);
   const stampInputRef = useRef<HTMLInputElement>(null);
