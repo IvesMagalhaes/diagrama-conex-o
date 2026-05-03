@@ -228,11 +228,23 @@ export default function Statistics({ user, onClose }: { user: AppUser; onClose: 
   const optionsAgente = useMemo(() => Array.from(new Set(stats.map((s) => s.agente))).sort(), [stats]);
   const optionsTipo = useMemo(() => Array.from(new Set(stats.map((s) => s.tipo))).sort(), [stats]);
 
+  const minhasSolicitacoes = useMemo(() => {
+    const lgn = (user.lgn_usuario || "").trim().toLowerCase();
+    const set = new Set<number>();
+    if (!lgn) return set;
+    for (const r of rows) {
+      if (!r.id_solicitacao || !r.nom_usuario) continue;
+      if (r.nom_usuario.trim().toLowerCase() === lgn) set.add(r.id_solicitacao);
+    }
+    return set;
+  }, [rows, user.lgn_usuario]);
+
   const filtered = useMemo(() => stats.filter((s) =>
     (filtroCos === "all" || s.cos_nome === filtroCos) &&
     (filtroAgente === "all" || s.agente === filtroAgente) &&
-    (filtroTipo === "all" || s.tipo === filtroTipo)
-  ), [stats, filtroCos, filtroAgente, filtroTipo]);
+    (filtroTipo === "all" || s.tipo === filtroTipo) &&
+    (!onlyMine || minhasSolicitacoes.has(s.id_solicitacao))
+  ), [stats, filtroCos, filtroAgente, filtroTipo, onlyMine, minhasSolicitacoes]);
 
   // KPIs
   const kpis = useMemo(() => {
