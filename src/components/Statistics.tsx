@@ -282,22 +282,29 @@ export default function Statistics({ user, onClose }: { user: AppUser; onClose: 
     };
   }, [filtered, ignorarPendencias]);
 
-  // Agrupamentos para gráficos
+  // Agrupamentos para gráficos (com pendências por COS/agente)
   function groupBy<K extends keyof AnalysisStat>(key: K) {
     const adj = (s: AnalysisStat) => ignorarPendencias ? Math.max(0, s.totalMs - s.pendenciaMs) : s.totalMs;
-    const map = new Map<string, { count: number; tempoMedio: number; tempoTotal: number }>();
+    const map = new Map<string, { count: number; tempoTotal: number; pendOnsCount: number; pendOnsMs: number }>();
     for (const s of filtered) {
-      const k = String(s[key] || "—");
-      const cur = map.get(k) || { count: 0, tempoMedio: 0, tempoTotal: 0 };
+      const k = String(s[key] || "(vazio)");
+      const cur = map.get(k) || { count: 0, tempoTotal: 0, pendOnsCount: 0, pendOnsMs: 0 };
       cur.count += 1;
       cur.tempoTotal += adj(s);
+      cur.pendOnsCount += s.qtdPendOns;
+      cur.pendOnsMs += s.pendOnsMs;
       map.set(k, cur);
     }
     return Array.from(map.entries()).map(([name, v]) => ({
       name,
       count: v.count,
-      tempoMedioH: +(v.tempoTotal / v.count / 3600000).toFixed(2),
+      tempoMedio: msToUnit(v.tempoTotal / Math.max(1, v.count), timeUnit),
+      tempoTotal: msToUnit(v.tempoTotal, timeUnit),
+      tempoMedioH: +(v.tempoTotal / Math.max(1, v.count) / 3600000).toFixed(2),
       tempoTotalH: +(v.tempoTotal / 3600000).toFixed(2),
+      pendOnsCount: v.pendOnsCount,
+      pendOnsMedio: msToUnit(v.pendOnsCount > 0 ? v.pendOnsMs / v.pendOnsCount : 0, timeUnit),
+      pendOnsTotal: msToUnit(v.pendOnsMs, timeUnit),
     })).sort((a, b) => b.count - a.count);
   }
 
