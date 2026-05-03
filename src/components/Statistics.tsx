@@ -477,12 +477,28 @@ export default function Statistics({ user, onClose }: { user: AppUser; onClose: 
               </Select>
             </div>
           </div>
-          <div className="mt-3 flex items-center gap-2">
-            <Checkbox id="ignPend" checked={ignorarPendencias} onCheckedChange={(v) => setIgnorarPendencias(!!v)} />
-            <label htmlFor="ignPend" className="text-sm cursor-pointer flex items-center gap-1.5">
-              Ignorar Pendências
-              <InfoTip text="Quando ativo, o tempo gasto em status 'Pendência' é descontado do tempo total e médio de finalização. Útil para medir apenas o esforço efetivo do analista." />
+          <div className="mt-3 flex items-center gap-4 flex-wrap">
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <Checkbox checked={ignorarPendencias} onCheckedChange={(v) => setIgnorarPendencias(!!v)} />
+              <span className="flex items-center gap-1.5">Ignorar Pendências
+                <InfoTip text="Quando ativo, o tempo gasto em 'Pendência' é descontado do tempo total e médio." /></span>
             </label>
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <Checkbox checked={onlyMine} onCheckedChange={(v) => setOnlyMine(!!v)} />
+              <span>Apenas Meus Resultados</span>
+            </label>
+            <div className="flex items-center gap-2 ml-auto">
+              <span className="text-xs text-muted-foreground">Unidade:</span>
+              <Select value={timeUnit} onValueChange={(v) => setTimeUnit(v as TimeUnit)}>
+                <SelectTrigger className="h-8 w-28"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="h">Horas</SelectItem>
+                  <SelectItem value="d">Dias</SelectItem>
+                  <SelectItem value="m">Meses</SelectItem>
+                  <SelectItem value="y">Anos</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </Card>
 
