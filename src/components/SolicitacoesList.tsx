@@ -23,7 +23,7 @@ interface Lookups {
   crcs: { cos_id: string; nomecurto: string }[];
 }
 
-export default function SolicitacoesList({ onLogout }: { onLogout: () => void }) {
+export default function SolicitacoesList({ user, onLogout }: { user: AppUser; onLogout: () => void }) {
   const [rows, setRows] = useState<SolicitacaoRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [lookups, setLookups] = useState<Lookups>({ instituicoes: [], instalacoes: [], crcs: [] });
@@ -33,6 +33,7 @@ export default function SolicitacoesList({ onLogout }: { onLogout: () => void })
   const [pageSize, setPageSize] = useState(20);
   const [pageInput, setPageInput] = useState("1");
   const [showStats, setShowStats] = useState(false);
+  const [onlyMine, setOnlyMine] = useState(false);
 
   async function load(f: ListFilters = filters) {
     setLoading(true);
