@@ -7,6 +7,21 @@ let mainWindow;
 let pool = null;
 let currentConfig = null;
 
+// =============================================================================
+// >>> CREDENCIAIS DE ACESSO AO MICROSOFT SQL SERVER (preencha aqui) <<<
+// Estas credenciais são usadas pelo login do usuário (login/senha do app).
+// Se a conexão automática falhar, o usuário cai na tela manual de conexão.
+// =============================================================================
+const HARDCODED_SQL = {
+  host: "prd-inst-xxx.exemplo.local", // <-- ALTERAR: hostname/IP do SQL Server
+  port: 2058,                          // <-- ALTERAR: porta
+  database: "INBOUND_xxx",             // <-- ALTERAR: nome do database
+  username: "usuario_servico",         // <-- ALTERAR: usuário SQL
+  password: "senha_servico",           // <-- ALTERAR: senha SQL
+  encrypt: false,                      // <-- ALTERAR se necessário (TLS)
+};
+// =============================================================================
+
 const credsPath = () => path.join(app.getPath("userData"), "sql-credentials.bin");
 
 function createWindow() {
