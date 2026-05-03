@@ -35,9 +35,11 @@ export default function SolicitacoesList({ user, onLogout }: { user: AppUser; on
   const [showStats, setShowStats] = useState(false);
   const [onlyMine, setOnlyMine] = useState(false);
 
-  async function load(f: ListFilters = filters) {
+  async function load(f: ListFilters = filters, mine: boolean = onlyMine) {
     setLoading(true);
-    const r = await api.listSolicitacoes(f);
+    const eff: ListFilters = { ...f };
+    if (mine && user.lgn_usuario) eff.meuUsuario = user.lgn_usuario;
+    const r = await api.listSolicitacoes(eff);
     setLoading(false);
     if (r.ok && r.rows) {
       setRows(r.rows);
@@ -50,7 +52,7 @@ export default function SolicitacoesList({ user, onLogout }: { user: AppUser; on
     api.lookups().then((r) => {
       if (r.ok) setLookups({ instituicoes: r.instituicoes || [], instalacoes: r.instalacoes || [], crcs: r.crcs || [] });
     });
-    load({});
+    load({}, false);
   }, []);
 
   const filteredInstalacoes = useMemo(
@@ -63,8 +65,9 @@ export default function SolicitacoesList({ user, onLogout }: { user: AppUser; on
     setFilters(next);
   }
 
-  async function handleApply() { await load(filters); }
-  async function handleClear() { setFilters({}); await load({}); }
+  async function handleApply() { await load(filters, onlyMine); }
+  async function handleClear() { setFilters({}); setOnlyMine(false); await load({}, false); }
+  async function toggleOnlyMine(v: boolean) { setOnlyMine(v); await load(filters, v); }
 
   function handleOpenTpDoc(row: SolicitacaoRow) {
     const meta = TPDOC_MAP[row.id_tpdocumento];
