@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   loadCreds: () => ipcRenderer.invoke("creds:load"),
   clearCreds: () => ipcRenderer.invoke("creds:clear"),
   connect: (config) => ipcRenderer.invoke("sql:connect", config),
+  authLogin: (payload) => ipcRenderer.invoke("auth:login", payload),
   listSolicitacoes: (filters) => ipcRenderer.invoke("sql:listSolicitacoes", filters),
   getSolicitacao: (id) => ipcRenderer.invoke("sql:getSolicitacao", id),
   listMpo: (insId) => ipcRenderer.invoke("sql:listMpo", insId),
