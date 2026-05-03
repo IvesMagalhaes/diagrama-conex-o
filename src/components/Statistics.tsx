@@ -410,6 +410,9 @@ export default function Statistics({ user, onClose }: { user: AppUser; onClose: 
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <BarChart3 className="size-5" /> Estatísticas e Indicadores
+            <Button size="sm" variant="outline" disabled className="ml-auto opacity-50 cursor-not-allowed" title="Funcionalidade em breve">
+              <Sparkles className="size-3.5" /> Análise Copilot
+            </Button>
           </DialogTitle>
         </DialogHeader>
 
