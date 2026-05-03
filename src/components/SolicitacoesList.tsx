@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
-import { Paperclip, Filter, RotateCw, Database, LogOut, AlertCircle, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, BarChart3 } from "lucide-react";
+import { Paperclip, Filter, RotateCw, Database, LogOut, AlertCircle, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, BarChart3, User } from "lucide-react";
 import { toast } from "sonner";
 import SolicitacaoDetail from "./SolicitacaoDetail";
 import Statistics from "./Statistics";
