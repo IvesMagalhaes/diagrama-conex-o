@@ -120,6 +120,42 @@ ipcMain.handle("sql:connect", async (_e, config) => {
   }
 });
 
+// ----- Auth: login do usuário usando sintegre.tb_usuario -----
+// Usa as HARDCODED_SQL para conectar e procura pelo lgn_usuario ou mail_usuario.
+// A senha NÃO é validada (regra atual). Mas o usuário não precisa saber.
+ipcMain.handle("auth:login", async (_e, { login }) => {
+  try {
+    if (!pool) {
+      try { await connect(HARDCODED_SQL); }
+      catch (err) {
+        return { ok: false, mode: "needs-manual", error: "Falha ao conectar ao SQL com credenciais embutidas: " + err.message };
+      }
+    }
+    const term = String(login || "").trim();
+    if (!term) return { ok: false, error: "Informe o login ou e-mail." };
+    // Comparação tolerante: aceita "nome_usuario" puro, "ons\nome", ou e-mail
+    const r = await pool.request()
+      .input("term", sql.NVarChar(200), term)
+      .input("termOns", sql.NVarChar(200), `ons\\${term}`)
+      .query(`
+        SELECT TOP 1 lgn_usuario, mail_usuario, nom_usuario
+        FROM sintegre.tb_usuario
+        WHERE LOWER(LTRIM(RTRIM(lgn_usuario))) = LOWER(@term)
+           OR LOWER(LTRIM(RTRIM(lgn_usuario))) = LOWER(@termOns)
+           OR LOWER(LTRIM(RTRIM(mail_usuario))) = LOWER(@term)
+      `);
+    if (!r.recordset.length) return { ok: false, error: "Login ou senha incorretos." };
+    const u = r.recordset[0];
+    return { ok: true, user: {
+      lgn_usuario: (u.lgn_usuario || "").trim(),
+      mail_usuario: (u.mail_usuario || "").trim(),
+      nom_usuario: (u.nom_usuario || "").trim(),
+    } };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+});
+
 async function ensurePool() {
   if (pool) return pool;
   const saved = loadCreds();
