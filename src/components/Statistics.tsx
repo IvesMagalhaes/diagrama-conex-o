@@ -706,8 +706,8 @@ function ChartStackedPend({ data, mode }: { data: PendDatum[]; mode: "count" | "
           <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={140} />
           <Tooltip />
           <Legend wrapperStyle={{ fontSize: 11 }} />
-          <Bar dataKey={keyA} name="Pend. Agente" stackId="p" fill="#f59e0b" />
-          <Bar dataKey={keyO} name="Pend. ONS" stackId="p" fill="#ef4444" />
+          <Bar dataKey={keyA} name="Pend. Agente" stackId="p" fill={PEND_COLOR_AGENTE} />
+          <Bar dataKey={keyO} name="Pend. ONS" stackId="p" fill={PEND_COLOR_ONS} />
         </BarChart>
       </ResponsiveContainer>
     </div>
