@@ -139,7 +139,7 @@ export default function SolicitacaoDetailModal({ id, onClose }: { id: number; on
             </section>
 
             {/* MPO */}
-            <section>
+            <section className={mpoGlow ? "mpo-glow p-2 -m-2" : ""}>
               <h3 className="font-semibold text-sm mb-2 flex items-center gap-2"><ClipboardList className="size-4" /> MPO</h3>
               {isTemporaria ? (
                 <p className="text-sm text-muted-foreground">Instalação temporária — consulta MPO não aplicável.</p>
