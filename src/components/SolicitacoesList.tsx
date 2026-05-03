@@ -344,7 +344,7 @@ export default function SolicitacoesList({ user, onLogout }: { user: AppUser; on
       {selectedId !== null && (
         <SolicitacaoDetail id={selectedId} onClose={() => setSelectedId(null)} />
       )}
-      {showStats && <Statistics onClose={() => setShowStats(false)} />}
+      {showStats && <Statistics user={user} onClose={() => setShowStats(false)} />}
     </div>
   );
 }
