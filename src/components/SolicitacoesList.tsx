@@ -228,9 +228,15 @@ export default function SolicitacoesList({ user, onLogout }: { user: AppUser; on
               <DateInputBR value={filters.dataFim} onChange={(v) => update("dataFim", v)} />
             </div>
           </div>
-          <div className="flex justify-end gap-2 mt-4">
-            <Button variant="ghost" onClick={handleClear}>Limpar</Button>
-            <Button onClick={handleApply} disabled={loading}>Filtrar</Button>
+          <div className="flex items-center justify-between gap-2 mt-4 flex-wrap">
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <Checkbox checked={onlyMine} onCheckedChange={(v) => toggleOnlyMine(!!v)} />
+              <span>Ver apenas as minhas análises</span>
+            </label>
+            <div className="flex gap-2">
+              <Button variant="ghost" onClick={handleClear}>Limpar</Button>
+              <Button onClick={handleApply} disabled={loading}>Filtrar</Button>
+            </div>
           </div>
         </Card>
 
