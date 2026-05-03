@@ -346,14 +346,14 @@ export default function Statistics({ user, onClose }: { user: AppUser; onClose: 
         agente: v.agente,
         ons: v.ons,
         total: v.agente + v.ons,
-        tempoAgenteH: +(v.tempoAgenteMs / 3600000).toFixed(2),
-        tempoOnsH: +(v.tempoOnsMs / 3600000).toFixed(2),
+        tempoAgenteH: msToUnit(v.tempoAgenteMs, timeUnit),
+        tempoOnsH: msToUnit(v.tempoOnsMs, timeUnit),
       }))
       .filter((x) => x.total > 0)
       .sort((a, b) => b.total - a.total);
   }
-  const pendPorAgente = useMemo(() => pendGroup("agente").slice(0, 12), [filtered]);
-  const pendPorCos = useMemo(() => pendGroup("cos_nome"), [filtered]);
+  const pendPorAgente = useMemo(() => pendGroup("agente").slice(0, 12), [filtered, timeUnit]);
+  const pendPorCos = useMemo(() => pendGroup("cos_nome"), [filtered, timeUnit]);
 
   // Série temporal: análises finalizadas por dia
   const porDia = useMemo(() => {
