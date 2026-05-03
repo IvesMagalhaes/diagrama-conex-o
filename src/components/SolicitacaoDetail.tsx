@@ -92,7 +92,7 @@ export default function SolicitacaoDetailModal({ id, onClose }: { id: number; on
           <DialogTitle className="flex items-center gap-3 flex-wrap">
             <span>Solicitação #{id}</span>
             <button
-              className="text-sm font-normal text-primary hover:underline inline-flex items-center gap-1"
+              className="text-xs font-medium inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
               onClick={() => api.openExternal(`${SINTEGRE_BASE}${id}`)}
             >
               <ExternalLink className="size-3.5" /> Ver no SINtegre
