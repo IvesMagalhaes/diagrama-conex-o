@@ -7,13 +7,33 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DateInputBR } from "./DateInputBR";
 import { api } from "@/lib/api";
-import type { AuditoriaRow } from "@/types/electron";
-import { Loader2, BarChart3, Download, RotateCw, Clock, CheckCircle2, AlertCircle, ListChecks, TrendingUp, Info } from "lucide-react";
+import type { AuditoriaRow, AppUser } from "@/types/electron";
+import { Loader2, BarChart3, Download, RotateCw, Clock, CheckCircle2, AlertCircle, ListChecks, TrendingUp, Info, Sparkles, Maximize2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell, Legend, LineChart, Line,
 } from "recharts";
 import * as XLSX from "xlsx";
+
+// Cores temáticas para Pendências: verde (Agente) e azul (ONS), iguais aos charts de COS
+const PEND_COLOR_AGENTE = "#10b981";
+const PEND_COLOR_ONS = "hsl(var(--primary))";
+
+type TimeUnit = "h" | "d" | "m" | "y";
+function msToUnit(ms: number, u: TimeUnit): number {
+  const h = ms / 3600000;
+  if (u === "h") return +h.toFixed(2);
+  if (u === "d") return +(h / 24).toFixed(2);
+  if (u === "m") return +(h / 24 / 30).toFixed(2);
+  return +(h / 24 / 365).toFixed(2);
+}
+function unitSuffix(u: TimeUnit): string {
+  return u === "h" ? "h" : u === "d" ? "d" : u === "m" ? "m" : "a";
+}
+function fmtUnit(ms: number, u: TimeUnit): string {
+  if (!isFinite(ms) || ms <= 0) return "—";
+  return `${msToUnit(ms, u)} ${unitSuffix(u)}`;
+}
 
 type Preset = "7d" | "15d" | "30d" | "180d" | "365d" | "custom";
 
