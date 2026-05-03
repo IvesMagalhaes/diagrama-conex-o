@@ -92,6 +92,10 @@ export default function SolicitacoesList({ user, onLogout }: { user: AppUser; on
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-xs">
+              <User className="size-3.5" />
+              <span className="font-medium" title={user.lgn_usuario}>{user.nom_usuario}</span>
+            </div>
             <Button variant="secondary" size="sm" onClick={() => setShowStats(true)}>
               <BarChart3 /> Estatísticas
             </Button>
