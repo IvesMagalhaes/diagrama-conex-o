@@ -112,7 +112,7 @@ export default function SolicitacaoDetailModal({ id, onClose }: { id: number; on
             )}
 
             {/* Bloco solicitante */}
-            <section className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
+            <section className="grid grid-cols-2 md:grid-cols-5 gap-3 text-sm field-card p-4">
               <Field label="Data de Criação"><DateTimeCell iso={s.din_criacao} /></Field>
               <Field label="Solicitante" value={s.nom_criacao} />
               <Field label="E-mail">
@@ -128,7 +128,7 @@ export default function SolicitacaoDetailModal({ id, onClose }: { id: number; on
             </section>
 
             {/* Bloco instalação */}
-            <section className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-muted/40 rounded-md text-sm">
+            <section className="grid grid-cols-2 md:grid-cols-4 gap-3 p-4 field-card text-sm">
               <Field label="Instituição" icon={<Building2 className="size-3.5" />} value={s.nom_agenteoperacao || "—"} />
               <Field label="Sigla" icon={<Hash className="size-3.5" />} value={isTemporaria ? "—" : (s.ins_id?.trim() || "—")} />
               <Field label="Instalação" icon={<MapPin className="size-3.5" />} value={s.instalacao_nome || "—"} />
