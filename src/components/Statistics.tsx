@@ -308,8 +308,8 @@ export default function Statistics({ user, onClose }: { user: AppUser; onClose: 
     })).sort((a, b) => b.count - a.count);
   }
 
-  const porCos = useMemo(() => groupBy("cos_nome"), [filtered]);
-  const porAgente = useMemo(() => groupBy("agente").slice(0, 12), [filtered]);
+  const porCos = useMemo(() => groupBy("cos_nome"), [filtered, timeUnit, ignorarPendencias]);
+  const porAgente = useMemo(() => groupBy("agente").slice(0, 12), [filtered, timeUnit, ignorarPendencias]);
   const porInstalacao = useMemo(() =>
     Array.from(filtered.reduce((m, s) => {
       const key = `${s.instalacao}${s.ins_id ? ` (${s.ins_id})` : ""}`;
@@ -322,11 +322,11 @@ export default function Statistics({ user, onClose }: { user: AppUser; onClose: 
       .map(([name, v]) => ({ name, count: v.count, tempoMedioH: +(v.tempoTotal / v.count / 3600000).toFixed(2) }))
       .sort((a, b) => b.count - a.count).slice(0, 12),
   [filtered]);
-  const porTipo = useMemo(() => groupBy("tipo"), [filtered]);
+  const porTipo = useMemo(() => groupBy("tipo"), [filtered, timeUnit, ignorarPendencias]);
   const porUsuario = useMemo(() => groupBy("usuario")
     .filter((x) => x.name.toLowerCase().startsWith("ons\\"))
     .map((x) => ({ ...x, name: x.name.substring(4) }))
-    .slice(0, 12), [filtered, ignorarPendencias]);
+    .slice(0, 12), [filtered, timeUnit, ignorarPendencias]);
 
   // Pendências por agente / COS
   function pendGroup<K extends keyof AnalysisStat>(key: K) {
