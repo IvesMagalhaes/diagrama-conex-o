@@ -506,21 +506,23 @@ export default function Statistics({ user, onClose }: { user: AppUser; onClose: 
           <div className="py-16 flex justify-center"><Loader2 className="animate-spin text-muted-foreground" /></div>
         ) : (
           <div className="space-y-4">
-            {/* KPIs */}
+            {/* KPIs - 12 indicadores em 4 colunas x 3 linhas */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <Kpi icon={<ListChecks className="size-4" />} label="Solicitações no período" value={String(kpis.totalSolicitacoes)} tip="Total de solicitações distintas que tiveram pelo menos um evento de auditoria no período selecionado." />
-              <Kpi icon={<CheckCircle2 className="size-4 text-emerald-600" />} label="Finalizadas" value={String(kpis.finalizadas)} tip="Solicitações cujo último status registrado é 'Distribuído'." />
-              <Kpi icon={<AlertCircle className="size-4 text-amber-600" />} label="Em pendência" value={String(kpis.pendentes)} tip="Solicitações cujo último status registrado é 'Pendência' (aguardando ação do agente)." />
-              <Kpi icon={<CheckCircle2 className="size-4 text-blue-600" />} label="De Acordo (não distribuídas)" value={String(kpis.deAcordo)} tip="Solicitações cujo último status é 'De Acordo' — aprovadas pelo analista mas ainda não distribuídas oficialmente." />
-              <Kpi icon={<BarChart3 className="size-4" />} label="Eventos de auditoria" value={String(rows.length)} tip="Quantidade total de eventos (linhas) retornadas pela consulta de auditoria no período." />
-              <Kpi icon={<Clock className="size-4" />} label="Tempo médio Em Análise" value={fmtMs(kpis.analiseMed)} tip="Soma do tempo gasto em 'Em Análise' por solicitação, dividido pela quantidade de solicitações." />
-              <Kpi icon={<Clock className="size-4" />} label="Tempo médio Finalização" value={fmtMs(kpis.tempoMedio)} tip="Tempo médio entre o primeiro e o último evento das solicitações finalizadas (Distribuído)." />
-              <Kpi icon={<TrendingUp className="size-4" />} label="Tempo máximo" value={fmtMs(kpis.tempoMax)} tip="Maior tempo de finalização registrado entre as solicitações distribuídas no período." />
-              <Kpi icon={<Clock className="size-4" />} label="Tempo total acumulado" value={fmtMs(kpis.tempoTotal)} tip="Soma do tempo de finalização de todas as solicitações distribuídas no período." />
-              <Kpi icon={<AlertCircle className="size-4 text-amber-600" />} label="Pendências do Agente" value={String(kpis.totalPendAgente)} tip="Quantidade de transições 'Em Análise → Pendência' (vezes em que o ONS devolveu para o agente complementar)." />
-              <Kpi icon={<AlertCircle className="size-4 text-rose-600" />} label="Pendências do ONS" value={String(kpis.totalPendOns)} tip="Quantidade de transições 'Pendência → Em Análise' (vezes em que o agente respondeu e o ONS retomou a análise)." />
-              <Kpi icon={<Clock className="size-4 text-amber-600" />} label="Tempo médio Pend. Agente" value={fmtMs(kpis.pendAgenteMed)} tip="Tempo médio que cada solicitação ficou em 'Pendência' aguardando o agente, considerando só solicitações que tiveram pelo menos uma pendência do agente." />
-              <Kpi icon={<Clock className="size-4 text-rose-600" />} label="Tempo médio Pend. ONS" value={fmtMs(kpis.pendOnsMed)} tip="Tempo médio que o ONS levou em 'Em Análise' após o agente responder uma pendência, considerando só solicitações com pelo menos uma resposta de pendência." />
+              {/* Linha 1: Solicitações | Em Pendência | De Acordo | Finalizadas */}
+              <Kpi icon={<ListChecks className="size-4" />} label="Solicitações no período" value={String(kpis.totalSolicitacoes)} tip="Total de solicitações distintas no período." />
+              <Kpi icon={<AlertCircle className="size-4 text-amber-600" />} label="Em pendência" value={String(kpis.pendentes)} tip="Solicitações cujo último status é 'Pendência'." />
+              <Kpi icon={<CheckCircle2 className="size-4 text-blue-600" />} label="De Acordo (não distribuídas)" value={String(kpis.deAcordo)} tip="Último status é 'De Acordo'." />
+              <Kpi icon={<CheckCircle2 className="size-4 text-emerald-600" />} label="Finalizadas" value={String(kpis.finalizadas)} tip="Último status é 'Distribuído'." />
+              {/* Linha 2 */}
+              <Kpi icon={<Clock className="size-4" />} label="Tempo Médio Em Análise" value={fmtUnit(kpis.analiseMed, timeUnit)} tip="Tempo médio em 'Em Análise' por solicitação." />
+              <Kpi icon={<Clock className="size-4" />} label="Tempo Médio Finalização" value={fmtUnit(kpis.tempoMedio, timeUnit)} tip="Tempo médio do início ao fim das finalizadas." />
+              <Kpi icon={<TrendingUp className="size-4" />} label="Tempo Máximo" value={fmtUnit(kpis.tempoMax, timeUnit)} tip="Maior tempo de finalização registrado." />
+              <Kpi icon={<Clock className="size-4" />} label="Tempo Total Acumulado" value={fmtUnit(kpis.tempoTotal, timeUnit)} tip="Soma do tempo de finalização." />
+              {/* Linha 3 */}
+              <Kpi icon={<AlertCircle className="size-4" style={{ color: PEND_COLOR_AGENTE }} />} label="Pendências do Agente" value={String(kpis.totalPendAgente)} tip="Transições 'Em Análise → Pendência'." />
+              <Kpi icon={<Clock className="size-4" style={{ color: PEND_COLOR_AGENTE }} />} label="Tempo Médio Pend. Agente" value={fmtUnit(kpis.pendAgenteMed, timeUnit)} tip="Tempo médio aguardando o agente." />
+              <Kpi icon={<AlertCircle className="size-4" style={{ color: PEND_COLOR_ONS }} />} label="Pendências ONS" value={String(kpis.totalPendOns)} tip="Transições 'Pendência → Em Análise'." />
+              <Kpi icon={<Clock className="size-4" style={{ color: PEND_COLOR_ONS }} />} label="Tempo Médio Pend. ONS" value={fmtUnit(kpis.pendOnsMed, timeUnit)} tip="Tempo médio do ONS após resposta de pendência." />
             </div>
 
             {/* Série temporal */}
