@@ -202,6 +202,12 @@ ipcMain.handle("sql:listSolicitacoes", async (_e, filters = {}) => {
       req.input("dataFim", sql.DateTime, new Date(filters.dataFim));
       where += ` AND s.din_modificacao <= @dataFim`;
     }
+    if (filters.meuUsuario) {
+      req.input("meuUsuario", sql.NVarChar(200), filters.meuUsuario);
+      where += ` AND EXISTS (SELECT 1 FROM DiagramasUnifilares.tb_auditoria au
+        WHERE au.id_solicitacao = s.id_solicitacao
+          AND LOWER(LTRIM(RTRIM(au.nom_usuario))) = LOWER(@meuUsuario))`;
+    }
 
     const query = `
       SELECT
