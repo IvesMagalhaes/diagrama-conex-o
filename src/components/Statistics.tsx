@@ -97,18 +97,21 @@ interface AnalysisStat {
   fim: string;
 }
 
-export default function Statistics({ onClose }: { onClose: () => void }) {
+export default function Statistics({ user, onClose }: { user: AppUser; onClose: () => void }) {
   const [preset, setPreset] = useState<Preset>("30d");
   const [dataIni, setDataIni] = useState<string | undefined>(isoDaysAgo(30));
   const [dataFim, setDataFim] = useState<string | undefined>(isoEndOfToday());
   const [loading, setLoading] = useState(false);
   const [rows, setRows] = useState<AuditoriaRow[]>([]);
+  const [timeUnit, setTimeUnit] = useState<TimeUnit>("h");
+  const [maximizedChart, setMaximizedChart] = useState<null | { title: string; node: React.ReactNode }>(null);
 
   // Filtros adicionais
   const [filtroCos, setFiltroCos] = useState<string>("all");
   const [filtroAgente, setFiltroAgente] = useState<string>("all");
   const [filtroTipo, setFiltroTipo] = useState<string>("all");
   const [ignorarPendencias, setIgnorarPendencias] = useState<boolean>(false);
+  const [onlyMine, setOnlyMine] = useState<boolean>(false);
 
   function applyPreset(p: Preset) {
     setPreset(p);
