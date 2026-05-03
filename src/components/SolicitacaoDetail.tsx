@@ -269,7 +269,7 @@ export default function SolicitacaoDetailModal({ id, onClose }: { id: number; on
           </div>
         )}
       </DialogContent>
-      {carimboOpen && <CarimboModal onClose={() => setCarimboOpen(false)} />}
+      {carimboOpen && <CarimboModal onClose={() => setCarimboOpen(false)} onStamped={() => { setMpoGlow(true); setTimeout(() => setMpoGlow(false), 1800); }} />}
     </Dialog>
   );
 }
