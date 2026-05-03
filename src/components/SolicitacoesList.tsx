@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
-import type { SolicitacaoRow, ListFilters } from "@/types/electron";
+import type { SolicitacaoRow, ListFilters, AppUser } from "@/types/electron";
 import { STATUS_OPTIONS, TPDOC_OPTIONS, TPDOC_MAP } from "@/lib/constants";
 import { StatusBadge } from "./StatusBadge";
 import { Button } from "@/components/ui/button";
