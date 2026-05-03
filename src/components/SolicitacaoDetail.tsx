@@ -323,11 +323,11 @@ function MpoTable({ rows }: { rows: MpoDocumento[] }) {
 
 function Field({ label, value, icon, children }: { label: string; value?: string | null; icon?: React.ReactNode; children?: React.ReactNode }) {
   return (
-    <div>
-      <div className="text-xs font-medium text-muted-foreground flex items-center gap-1 mb-0.5">
+    <div className="rounded-md overflow-hidden border border-border/60 bg-card">
+      <div className="field-label text-[11px] font-semibold flex items-center gap-1 px-2 py-1 uppercase tracking-wide">
         {icon}{label}
       </div>
-      <div className="text-sm">{children ?? value ?? "—"}</div>
+      <div className="text-sm px-2 py-1.5">{children ?? value ?? "—"}</div>
     </div>
   );
 }
