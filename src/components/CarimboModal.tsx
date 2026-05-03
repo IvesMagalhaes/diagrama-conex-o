@@ -205,7 +205,8 @@ export default function CarimboModal({ onClose, onStamped }: { onClose: () => vo
       URL.revokeObjectURL(url);
       toast.success("PDF carimbado gerado.", { description: `${baseName}_carimbado.pdf` });
       setConfirming(false);
-      // mantém o modal aberto para o usuário poder fechar manualmente ou carimbar outro
+      onStamped?.();
+      onClose();
     } catch (err) {
       toast.error("Erro ao gerar PDF", { description: (err as Error).message });
     } finally {
