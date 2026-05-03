@@ -104,6 +104,13 @@ export interface ListFilters {
   crc?: string;
   dataIni?: string;
   dataFim?: string;
+  meuUsuario?: string; // lgn_usuario (formato "ons\nome") para filtrar "minhas análises"
+}
+
+export interface AppUser {
+  lgn_usuario: string;
+  mail_usuario: string;
+  nom_usuario: string;
 }
 
 declare global {
@@ -113,6 +120,7 @@ declare global {
       loadCreds: () => Promise<SqlCreds | null>;
       clearCreds: () => Promise<boolean>;
       connect: (c: SqlCreds) => Promise<{ ok: boolean; error?: string }>;
+      authLogin: (p: { login: string }) => Promise<{ ok: boolean; user?: AppUser; error?: string; mode?: string }>;
       listSolicitacoes: (f: ListFilters) => Promise<{ ok: boolean; rows?: SolicitacaoRow[]; error?: string }>;
       getSolicitacao: (id: number) => Promise<{ ok: boolean; solicitacao?: SolicitacaoDetail; anexos?: Anexo[]; comentarios?: Comentario[]; error?: string }>;
       listMpo: (insId: string) => Promise<{ ok: boolean; rows?: MpoDocumento[]; error?: string; debug?: Record<string, unknown> }>;
