@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { SqlCreds, ListFilters } from "@/types/electron";
+import type { SqlCreds, ListFilters, AppUser } from "@/types/electron";
 import { mockListSolicitacoes, mockGetSolicitacao, mockLookups, mockConnect, mockListMpo } from "./mockData";
 
 const isElectron = () => typeof window !== "undefined" && !!window.electronAPI?.isElectron;
