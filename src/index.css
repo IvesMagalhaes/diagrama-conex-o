@@ -95,6 +95,9 @@ All colors MUST be HSL.
     animation: mpo-glow 1.6s ease-out 1;
     border-radius: var(--radius);
   }
+}
+
+@layer base {
 
   .dark {
     --background: 222.2 84% 4.9%;
