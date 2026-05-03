@@ -604,8 +604,11 @@ export default function Statistics({ user, onClose }: { user: AppUser; onClose: 
                     <tr>
                       <th className="text-left font-medium px-2 py-1.5">COS ONS</th>
                       <th className="text-right font-medium px-2 py-1.5">Análises</th>
-                      <th className="text-right font-medium px-2 py-1.5">Tempo total (h)</th>
-                      <th className="text-right font-medium px-2 py-1.5">Tempo médio (h)</th>
+                      <th className="text-right font-medium px-2 py-1.5">Tempo Total Análises ({unitSuffix(timeUnit)})</th>
+                      <th className="text-right font-medium px-2 py-1.5">Tempo Médio Análises ({unitSuffix(timeUnit)})</th>
+                      <th className="text-right font-medium px-2 py-1.5">Nº de Pendências</th>
+                      <th className="text-right font-medium px-2 py-1.5">Tempo Médio Pend. ({unitSuffix(timeUnit)})</th>
+                      <th className="text-right font-medium px-2 py-1.5">Tempo Total Pend. ({unitSuffix(timeUnit)})</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -613,8 +616,11 @@ export default function Statistics({ user, onClose }: { user: AppUser; onClose: 
                       <tr key={p.name} className="border-t">
                         <td className="px-2 py-1.5">{p.name}</td>
                         <td className="px-2 py-1.5 text-right">{p.count}</td>
-                        <td className="px-2 py-1.5 text-right">{p.tempoTotalH}</td>
-                        <td className="px-2 py-1.5 text-right">{p.tempoMedioH}</td>
+                        <td className="px-2 py-1.5 text-right">{p.tempoTotal}</td>
+                        <td className="px-2 py-1.5 text-right">{p.tempoMedio}</td>
+                        <td className="px-2 py-1.5 text-right">{p.pendOnsCount}</td>
+                        <td className="px-2 py-1.5 text-right">{p.pendOnsMedio}</td>
+                        <td className="px-2 py-1.5 text-right">{p.pendOnsTotal}</td>
                       </tr>
                     ))}
                   </tbody>
