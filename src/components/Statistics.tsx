@@ -7,13 +7,33 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DateInputBR } from "./DateInputBR";
 import { api } from "@/lib/api";
-import type { AuditoriaRow } from "@/types/electron";
-import { Loader2, BarChart3, Download, RotateCw, Clock, CheckCircle2, AlertCircle, ListChecks, TrendingUp, Info } from "lucide-react";
+import type { AuditoriaRow, AppUser } from "@/types/electron";
+import { Loader2, BarChart3, Download, RotateCw, Clock, CheckCircle2, AlertCircle, ListChecks, TrendingUp, Info, Sparkles, Maximize2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell, Legend, LineChart, Line,
 } from "recharts";
 import * as XLSX from "xlsx";
+
+// Cores temáticas para Pendências: verde (Agente) e azul (ONS), iguais aos charts de COS
+const PEND_COLOR_AGENTE = "#10b981";
+const PEND_COLOR_ONS = "hsl(var(--primary))";
+
+type TimeUnit = "h" | "d" | "m" | "y";
+function msToUnit(ms: number, u: TimeUnit): number {
+  const h = ms / 3600000;
+  if (u === "h") return +h.toFixed(2);
+  if (u === "d") return +(h / 24).toFixed(2);
+  if (u === "m") return +(h / 24 / 30).toFixed(2);
+  return +(h / 24 / 365).toFixed(2);
+}
+function unitSuffix(u: TimeUnit): string {
+  return u === "h" ? "h" : u === "d" ? "d" : u === "m" ? "m" : "a";
+}
+function fmtUnit(ms: number, u: TimeUnit): string {
+  if (!isFinite(ms) || ms <= 0) return "—";
+  return `${msToUnit(ms, u)} ${unitSuffix(u)}`;
+}
 
 type Preset = "7d" | "15d" | "30d" | "180d" | "365d" | "custom";
 
@@ -77,18 +97,21 @@ interface AnalysisStat {
   fim: string;
 }
 
-export default function Statistics({ onClose }: { onClose: () => void }) {
+export default function Statistics({ user, onClose }: { user: AppUser; onClose: () => void }) {
   const [preset, setPreset] = useState<Preset>("30d");
   const [dataIni, setDataIni] = useState<string | undefined>(isoDaysAgo(30));
   const [dataFim, setDataFim] = useState<string | undefined>(isoEndOfToday());
   const [loading, setLoading] = useState(false);
   const [rows, setRows] = useState<AuditoriaRow[]>([]);
+  const [timeUnit, setTimeUnit] = useState<TimeUnit>("h");
+  const [maximizedChart, setMaximizedChart] = useState<null | { title: string; node: React.ReactNode }>(null);
 
   // Filtros adicionais
   const [filtroCos, setFiltroCos] = useState<string>("all");
   const [filtroAgente, setFiltroAgente] = useState<string>("all");
   const [filtroTipo, setFiltroTipo] = useState<string>("all");
   const [ignorarPendencias, setIgnorarPendencias] = useState<boolean>(false);
+  const [onlyMine, setOnlyMine] = useState<boolean>(false);
 
   function applyPreset(p: Preset) {
     setPreset(p);
@@ -205,11 +228,23 @@ export default function Statistics({ onClose }: { onClose: () => void }) {
   const optionsAgente = useMemo(() => Array.from(new Set(stats.map((s) => s.agente))).sort(), [stats]);
   const optionsTipo = useMemo(() => Array.from(new Set(stats.map((s) => s.tipo))).sort(), [stats]);
 
+  const minhasSolicitacoes = useMemo(() => {
+    const lgn = (user.lgn_usuario || "").trim().toLowerCase();
+    const set = new Set<number>();
+    if (!lgn) return set;
+    for (const r of rows) {
+      if (!r.id_solicitacao || !r.nom_usuario) continue;
+      if (r.nom_usuario.trim().toLowerCase() === lgn) set.add(r.id_solicitacao);
+    }
+    return set;
+  }, [rows, user.lgn_usuario]);
+
   const filtered = useMemo(() => stats.filter((s) =>
     (filtroCos === "all" || s.cos_nome === filtroCos) &&
     (filtroAgente === "all" || s.agente === filtroAgente) &&
-    (filtroTipo === "all" || s.tipo === filtroTipo)
-  ), [stats, filtroCos, filtroAgente, filtroTipo]);
+    (filtroTipo === "all" || s.tipo === filtroTipo) &&
+    (!onlyMine || minhasSolicitacoes.has(s.id_solicitacao))
+  ), [stats, filtroCos, filtroAgente, filtroTipo, onlyMine, minhasSolicitacoes]);
 
   // KPIs
   const kpis = useMemo(() => {
@@ -247,27 +282,34 @@ export default function Statistics({ onClose }: { onClose: () => void }) {
     };
   }, [filtered, ignorarPendencias]);
 
-  // Agrupamentos para gráficos
+  // Agrupamentos para gráficos (com pendências por COS/agente)
   function groupBy<K extends keyof AnalysisStat>(key: K) {
     const adj = (s: AnalysisStat) => ignorarPendencias ? Math.max(0, s.totalMs - s.pendenciaMs) : s.totalMs;
-    const map = new Map<string, { count: number; tempoMedio: number; tempoTotal: number }>();
+    const map = new Map<string, { count: number; tempoTotal: number; pendOnsCount: number; pendOnsMs: number }>();
     for (const s of filtered) {
-      const k = String(s[key] || "—");
-      const cur = map.get(k) || { count: 0, tempoMedio: 0, tempoTotal: 0 };
+      const k = String(s[key] || "(vazio)");
+      const cur = map.get(k) || { count: 0, tempoTotal: 0, pendOnsCount: 0, pendOnsMs: 0 };
       cur.count += 1;
       cur.tempoTotal += adj(s);
+      cur.pendOnsCount += s.qtdPendOns;
+      cur.pendOnsMs += s.pendOnsMs;
       map.set(k, cur);
     }
     return Array.from(map.entries()).map(([name, v]) => ({
       name,
       count: v.count,
-      tempoMedioH: +(v.tempoTotal / v.count / 3600000).toFixed(2),
+      tempoMedio: msToUnit(v.tempoTotal / Math.max(1, v.count), timeUnit),
+      tempoTotal: msToUnit(v.tempoTotal, timeUnit),
+      tempoMedioH: +(v.tempoTotal / Math.max(1, v.count) / 3600000).toFixed(2),
       tempoTotalH: +(v.tempoTotal / 3600000).toFixed(2),
+      pendOnsCount: v.pendOnsCount,
+      pendOnsMedio: msToUnit(v.pendOnsCount > 0 ? v.pendOnsMs / v.pendOnsCount : 0, timeUnit),
+      pendOnsTotal: msToUnit(v.pendOnsMs, timeUnit),
     })).sort((a, b) => b.count - a.count);
   }
 
-  const porCos = useMemo(() => groupBy("cos_nome"), [filtered]);
-  const porAgente = useMemo(() => groupBy("agente").slice(0, 12), [filtered]);
+  const porCos = useMemo(() => groupBy("cos_nome"), [filtered, timeUnit, ignorarPendencias]);
+  const porAgente = useMemo(() => groupBy("agente").slice(0, 12), [filtered, timeUnit, ignorarPendencias]);
   const porInstalacao = useMemo(() =>
     Array.from(filtered.reduce((m, s) => {
       const key = `${s.instalacao}${s.ins_id ? ` (${s.ins_id})` : ""}`;
@@ -280,11 +322,11 @@ export default function Statistics({ onClose }: { onClose: () => void }) {
       .map(([name, v]) => ({ name, count: v.count, tempoMedioH: +(v.tempoTotal / v.count / 3600000).toFixed(2) }))
       .sort((a, b) => b.count - a.count).slice(0, 12),
   [filtered]);
-  const porTipo = useMemo(() => groupBy("tipo"), [filtered]);
+  const porTipo = useMemo(() => groupBy("tipo"), [filtered, timeUnit, ignorarPendencias]);
   const porUsuario = useMemo(() => groupBy("usuario")
     .filter((x) => x.name.toLowerCase().startsWith("ons\\"))
     .map((x) => ({ ...x, name: x.name.substring(4) }))
-    .slice(0, 12), [filtered, ignorarPendencias]);
+    .slice(0, 12), [filtered, timeUnit, ignorarPendencias]);
 
   // Pendências por agente / COS
   function pendGroup<K extends keyof AnalysisStat>(key: K) {
@@ -304,14 +346,14 @@ export default function Statistics({ onClose }: { onClose: () => void }) {
         agente: v.agente,
         ons: v.ons,
         total: v.agente + v.ons,
-        tempoAgenteH: +(v.tempoAgenteMs / 3600000).toFixed(2),
-        tempoOnsH: +(v.tempoOnsMs / 3600000).toFixed(2),
+        tempoAgenteH: msToUnit(v.tempoAgenteMs, timeUnit),
+        tempoOnsH: msToUnit(v.tempoOnsMs, timeUnit),
       }))
       .filter((x) => x.total > 0)
       .sort((a, b) => b.total - a.total);
   }
-  const pendPorAgente = useMemo(() => pendGroup("agente").slice(0, 12), [filtered]);
-  const pendPorCos = useMemo(() => pendGroup("cos_nome"), [filtered]);
+  const pendPorAgente = useMemo(() => pendGroup("agente").slice(0, 12), [filtered, timeUnit]);
+  const pendPorCos = useMemo(() => pendGroup("cos_nome"), [filtered, timeUnit]);
 
   // Série temporal: análises finalizadas por dia
   const porDia = useMemo(() => {
@@ -368,6 +410,9 @@ export default function Statistics({ onClose }: { onClose: () => void }) {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <BarChart3 className="size-5" /> Estatísticas e Indicadores
+            <Button size="sm" variant="outline" disabled className="ml-auto opacity-50 cursor-not-allowed" title="Funcionalidade em breve">
+              <Sparkles className="size-3.5" /> Análise Copilot
+            </Button>
           </DialogTitle>
         </DialogHeader>
 
@@ -432,12 +477,28 @@ export default function Statistics({ onClose }: { onClose: () => void }) {
               </Select>
             </div>
           </div>
-          <div className="mt-3 flex items-center gap-2">
-            <Checkbox id="ignPend" checked={ignorarPendencias} onCheckedChange={(v) => setIgnorarPendencias(!!v)} />
-            <label htmlFor="ignPend" className="text-sm cursor-pointer flex items-center gap-1.5">
-              Ignorar Pendências
-              <InfoTip text="Quando ativo, o tempo gasto em status 'Pendência' é descontado do tempo total e médio de finalização. Útil para medir apenas o esforço efetivo do analista." />
+          <div className="mt-3 flex items-center gap-4 flex-wrap">
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <Checkbox checked={ignorarPendencias} onCheckedChange={(v) => setIgnorarPendencias(!!v)} />
+              <span className="flex items-center gap-1.5">Ignorar Pendências
+                <InfoTip text="Quando ativo, o tempo gasto em 'Pendência' é descontado do tempo total e médio." /></span>
             </label>
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <Checkbox checked={onlyMine} onCheckedChange={(v) => setOnlyMine(!!v)} />
+              <span>Apenas Meus Resultados</span>
+            </label>
+            <div className="flex items-center gap-2 ml-auto">
+              <span className="text-xs text-muted-foreground">Unidade:</span>
+              <Select value={timeUnit} onValueChange={(v) => setTimeUnit(v as TimeUnit)}>
+                <SelectTrigger className="h-8 w-28"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="h">Horas</SelectItem>
+                  <SelectItem value="d">Dias</SelectItem>
+                  <SelectItem value="m">Meses</SelectItem>
+                  <SelectItem value="y">Anos</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </Card>
 
@@ -445,21 +506,23 @@ export default function Statistics({ onClose }: { onClose: () => void }) {
           <div className="py-16 flex justify-center"><Loader2 className="animate-spin text-muted-foreground" /></div>
         ) : (
           <div className="space-y-4">
-            {/* KPIs */}
+            {/* KPIs - 12 indicadores em 4 colunas x 3 linhas */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <Kpi icon={<ListChecks className="size-4" />} label="Solicitações no período" value={String(kpis.totalSolicitacoes)} tip="Total de solicitações distintas que tiveram pelo menos um evento de auditoria no período selecionado." />
-              <Kpi icon={<CheckCircle2 className="size-4 text-emerald-600" />} label="Finalizadas" value={String(kpis.finalizadas)} tip="Solicitações cujo último status registrado é 'Distribuído'." />
-              <Kpi icon={<AlertCircle className="size-4 text-amber-600" />} label="Em pendência" value={String(kpis.pendentes)} tip="Solicitações cujo último status registrado é 'Pendência' (aguardando ação do agente)." />
-              <Kpi icon={<CheckCircle2 className="size-4 text-blue-600" />} label="De Acordo (não distribuídas)" value={String(kpis.deAcordo)} tip="Solicitações cujo último status é 'De Acordo' — aprovadas pelo analista mas ainda não distribuídas oficialmente." />
-              <Kpi icon={<BarChart3 className="size-4" />} label="Eventos de auditoria" value={String(rows.length)} tip="Quantidade total de eventos (linhas) retornadas pela consulta de auditoria no período." />
-              <Kpi icon={<Clock className="size-4" />} label="Tempo médio Em Análise" value={fmtMs(kpis.analiseMed)} tip="Soma do tempo gasto em 'Em Análise' por solicitação, dividido pela quantidade de solicitações." />
-              <Kpi icon={<Clock className="size-4" />} label="Tempo médio Finalização" value={fmtMs(kpis.tempoMedio)} tip="Tempo médio entre o primeiro e o último evento das solicitações finalizadas (Distribuído)." />
-              <Kpi icon={<TrendingUp className="size-4" />} label="Tempo máximo" value={fmtMs(kpis.tempoMax)} tip="Maior tempo de finalização registrado entre as solicitações distribuídas no período." />
-              <Kpi icon={<Clock className="size-4" />} label="Tempo total acumulado" value={fmtMs(kpis.tempoTotal)} tip="Soma do tempo de finalização de todas as solicitações distribuídas no período." />
-              <Kpi icon={<AlertCircle className="size-4 text-amber-600" />} label="Pendências do Agente" value={String(kpis.totalPendAgente)} tip="Quantidade de transições 'Em Análise → Pendência' (vezes em que o ONS devolveu para o agente complementar)." />
-              <Kpi icon={<AlertCircle className="size-4 text-rose-600" />} label="Pendências do ONS" value={String(kpis.totalPendOns)} tip="Quantidade de transições 'Pendência → Em Análise' (vezes em que o agente respondeu e o ONS retomou a análise)." />
-              <Kpi icon={<Clock className="size-4 text-amber-600" />} label="Tempo médio Pend. Agente" value={fmtMs(kpis.pendAgenteMed)} tip="Tempo médio que cada solicitação ficou em 'Pendência' aguardando o agente, considerando só solicitações que tiveram pelo menos uma pendência do agente." />
-              <Kpi icon={<Clock className="size-4 text-rose-600" />} label="Tempo médio Pend. ONS" value={fmtMs(kpis.pendOnsMed)} tip="Tempo médio que o ONS levou em 'Em Análise' após o agente responder uma pendência, considerando só solicitações com pelo menos uma resposta de pendência." />
+              {/* Linha 1: Solicitações | Em Pendência | De Acordo | Finalizadas */}
+              <Kpi icon={<ListChecks className="size-4" />} label="Solicitações no período" value={String(kpis.totalSolicitacoes)} tip="Total de solicitações distintas no período." />
+              <Kpi icon={<AlertCircle className="size-4 text-amber-600" />} label="Em pendência" value={String(kpis.pendentes)} tip="Solicitações cujo último status é 'Pendência'." />
+              <Kpi icon={<CheckCircle2 className="size-4 text-blue-600" />} label="De Acordo (não distribuídas)" value={String(kpis.deAcordo)} tip="Último status é 'De Acordo'." />
+              <Kpi icon={<CheckCircle2 className="size-4 text-emerald-600" />} label="Finalizadas" value={String(kpis.finalizadas)} tip="Último status é 'Distribuído'." />
+              {/* Linha 2 */}
+              <Kpi icon={<Clock className="size-4" />} label="Tempo Médio Em Análise" value={fmtUnit(kpis.analiseMed, timeUnit)} tip="Tempo médio em 'Em Análise' por solicitação." />
+              <Kpi icon={<Clock className="size-4" />} label="Tempo Médio Finalização" value={fmtUnit(kpis.tempoMedio, timeUnit)} tip="Tempo médio do início ao fim das finalizadas." />
+              <Kpi icon={<TrendingUp className="size-4" />} label="Tempo Máximo" value={fmtUnit(kpis.tempoMax, timeUnit)} tip="Maior tempo de finalização registrado." />
+              <Kpi icon={<Clock className="size-4" />} label="Tempo Total Acumulado" value={fmtUnit(kpis.tempoTotal, timeUnit)} tip="Soma do tempo de finalização." />
+              {/* Linha 3 */}
+              <Kpi icon={<AlertCircle className="size-4" style={{ color: PEND_COLOR_AGENTE }} />} label="Pendências do Agente" value={String(kpis.totalPendAgente)} tip="Transições 'Em Análise → Pendência'." />
+              <Kpi icon={<Clock className="size-4" style={{ color: PEND_COLOR_AGENTE }} />} label="Tempo Médio Pend. Agente" value={fmtUnit(kpis.pendAgenteMed, timeUnit)} tip="Tempo médio aguardando o agente." />
+              <Kpi icon={<AlertCircle className="size-4" style={{ color: PEND_COLOR_ONS }} />} label="Pendências ONS" value={String(kpis.totalPendOns)} tip="Transições 'Pendência → Em Análise'." />
+              <Kpi icon={<Clock className="size-4" style={{ color: PEND_COLOR_ONS }} />} label="Tempo Médio Pend. ONS" value={fmtUnit(kpis.pendOnsMed, timeUnit)} tip="Tempo médio do ONS após resposta de pendência." />
             </div>
 
             {/* Série temporal */}
@@ -541,8 +604,11 @@ export default function Statistics({ onClose }: { onClose: () => void }) {
                     <tr>
                       <th className="text-left font-medium px-2 py-1.5">COS ONS</th>
                       <th className="text-right font-medium px-2 py-1.5">Análises</th>
-                      <th className="text-right font-medium px-2 py-1.5">Tempo total (h)</th>
-                      <th className="text-right font-medium px-2 py-1.5">Tempo médio (h)</th>
+                      <th className="text-right font-medium px-2 py-1.5">Tempo Total Análises ({unitSuffix(timeUnit)})</th>
+                      <th className="text-right font-medium px-2 py-1.5">Tempo Médio Análises ({unitSuffix(timeUnit)})</th>
+                      <th className="text-right font-medium px-2 py-1.5">Nº de Pendências</th>
+                      <th className="text-right font-medium px-2 py-1.5">Tempo Médio Pend. ({unitSuffix(timeUnit)})</th>
+                      <th className="text-right font-medium px-2 py-1.5">Tempo Total Pend. ({unitSuffix(timeUnit)})</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -550,8 +616,11 @@ export default function Statistics({ onClose }: { onClose: () => void }) {
                       <tr key={p.name} className="border-t">
                         <td className="px-2 py-1.5">{p.name}</td>
                         <td className="px-2 py-1.5 text-right">{p.count}</td>
-                        <td className="px-2 py-1.5 text-right">{p.tempoTotalH}</td>
-                        <td className="px-2 py-1.5 text-right">{p.tempoMedioH}</td>
+                        <td className="px-2 py-1.5 text-right">{p.tempoTotal}</td>
+                        <td className="px-2 py-1.5 text-right">{p.tempoMedio}</td>
+                        <td className="px-2 py-1.5 text-right">{p.pendOnsCount}</td>
+                        <td className="px-2 py-1.5 text-right">{p.pendOnsMedio}</td>
+                        <td className="px-2 py-1.5 text-right">{p.pendOnsTotal}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -637,8 +706,8 @@ function ChartStackedPend({ data, mode }: { data: PendDatum[]; mode: "count" | "
           <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={140} />
           <Tooltip />
           <Legend wrapperStyle={{ fontSize: 11 }} />
-          <Bar dataKey={keyA} name="Pend. Agente" stackId="p" fill="#f59e0b" />
-          <Bar dataKey={keyO} name="Pend. ONS" stackId="p" fill="#ef4444" />
+          <Bar dataKey={keyA} name="Pend. Agente" stackId="p" fill={PEND_COLOR_AGENTE} />
+          <Bar dataKey={keyO} name="Pend. ONS" stackId="p" fill={PEND_COLOR_ONS} />
         </BarChart>
       </ResponsiveContainer>
     </div>

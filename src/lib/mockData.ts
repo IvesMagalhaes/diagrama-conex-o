@@ -61,6 +61,7 @@ export async function mockListSolicitacoes(f: ListFilters): Promise<{ ok: boolea
   if (f.crc) rows = rows.filter((r) => r.cos_id === f.crc);
   if (f.dataIni) rows = rows.filter((r) => new Date(r.din_modificacao) >= new Date(f.dataIni!));
   if (f.dataFim) rows = rows.filter((r) => new Date(r.din_modificacao) <= new Date(f.dataFim!));
+  if (f.meuUsuario) rows = rows.filter((r) => r.id_solicitacao % 2 === 0); // demo: filtra metade
   rows.sort((a, b) => new Date(b.din_modificacao).getTime() - new Date(a.din_modificacao).getTime());
   return { ok: true as const, rows };
 }

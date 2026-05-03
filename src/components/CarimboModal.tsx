@@ -33,7 +33,7 @@ interface RenderedPage {
 const DEFAULT_W = 180;
 const DEFAULT_H = 90;
 
-export default function CarimboModal({ onClose }: { onClose: () => void }) {
+export default function CarimboModal({ onClose, onStamped }: { onClose: () => void; onStamped?: () => void }) {
   const [stampDataUrl, setStampDataUrl] = useState<string | null>(null);
   const [stampLoading, setStampLoading] = useState(true);
   const stampInputRef = useRef<HTMLInputElement>(null);
@@ -205,7 +205,8 @@ export default function CarimboModal({ onClose }: { onClose: () => void }) {
       URL.revokeObjectURL(url);
       toast.success("PDF carimbado gerado.", { description: `${baseName}_carimbado.pdf` });
       setConfirming(false);
-      // mantém o modal aberto para o usuário poder fechar manualmente ou carimbar outro
+      onStamped?.();
+      onClose();
     } catch (err) {
       toast.error("Erro ao gerar PDF", { description: (err as Error).message });
     } finally {

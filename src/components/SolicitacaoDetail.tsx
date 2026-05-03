@@ -36,6 +36,7 @@ export default function SolicitacaoDetailModal({ id, onClose }: { id: number; on
   const [mpoSearchLoading, setMpoSearchLoading] = useState(false);
   const [mpoSearchError, setMpoSearchError] = useState<string | null>(null);
   const [carimboOpen, setCarimboOpen] = useState(false);
+  const [mpoGlow, setMpoGlow] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -91,7 +92,7 @@ export default function SolicitacaoDetailModal({ id, onClose }: { id: number; on
           <DialogTitle className="flex items-center gap-3 flex-wrap">
             <span>Solicitação #{id}</span>
             <button
-              className="text-sm font-normal text-primary hover:underline inline-flex items-center gap-1"
+              className="text-xs font-medium inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
               onClick={() => api.openExternal(`${SINTEGRE_BASE}${id}`)}
             >
               <ExternalLink className="size-3.5" /> Ver no SINtegre
@@ -111,7 +112,7 @@ export default function SolicitacaoDetailModal({ id, onClose }: { id: number; on
             )}
 
             {/* Bloco solicitante */}
-            <section className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
+            <section className="grid grid-cols-2 md:grid-cols-5 gap-3 text-sm field-card p-4">
               <Field label="Data de Criação"><DateTimeCell iso={s.din_criacao} /></Field>
               <Field label="Solicitante" value={s.nom_criacao} />
               <Field label="E-mail">
@@ -127,7 +128,7 @@ export default function SolicitacaoDetailModal({ id, onClose }: { id: number; on
             </section>
 
             {/* Bloco instalação */}
-            <section className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-muted/40 rounded-md text-sm">
+            <section className="grid grid-cols-2 md:grid-cols-4 gap-3 p-4 field-card text-sm">
               <Field label="Instituição" icon={<Building2 className="size-3.5" />} value={s.nom_agenteoperacao || "—"} />
               <Field label="Sigla" icon={<Hash className="size-3.5" />} value={isTemporaria ? "—" : (s.ins_id?.trim() || "—")} />
               <Field label="Instalação" icon={<MapPin className="size-3.5" />} value={s.instalacao_nome || "—"} />
@@ -138,7 +139,7 @@ export default function SolicitacaoDetailModal({ id, onClose }: { id: number; on
             </section>
 
             {/* MPO */}
-            <section>
+            <section className={mpoGlow ? "mpo-glow p-2 -m-2" : ""}>
               <h3 className="font-semibold text-sm mb-2 flex items-center gap-2"><ClipboardList className="size-4" /> MPO</h3>
               {isTemporaria ? (
                 <p className="text-sm text-muted-foreground">Instalação temporária — consulta MPO não aplicável.</p>
@@ -268,7 +269,7 @@ export default function SolicitacaoDetailModal({ id, onClose }: { id: number; on
           </div>
         )}
       </DialogContent>
-      {carimboOpen && <CarimboModal onClose={() => setCarimboOpen(false)} />}
+      {carimboOpen && <CarimboModal onClose={() => setCarimboOpen(false)} onStamped={() => { setMpoGlow(true); setTimeout(() => setMpoGlow(false), 1800); }} />}
     </Dialog>
   );
 }
@@ -322,11 +323,11 @@ function MpoTable({ rows }: { rows: MpoDocumento[] }) {
 
 function Field({ label, value, icon, children }: { label: string; value?: string | null; icon?: React.ReactNode; children?: React.ReactNode }) {
   return (
-    <div>
-      <div className="text-xs font-medium text-muted-foreground flex items-center gap-1 mb-0.5">
+    <div className="rounded-md overflow-hidden border border-border/60 bg-card">
+      <div className="field-label text-[11px] font-semibold flex items-center gap-1 px-2 py-1 uppercase tracking-wide">
         {icon}{label}
       </div>
-      <div className="text-sm">{children ?? value ?? "—"}</div>
+      <div className="text-sm px-2 py-1.5">{children ?? value ?? "—"}</div>
     </div>
   );
 }

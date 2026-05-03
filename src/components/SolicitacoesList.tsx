@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
-import type { SolicitacaoRow, ListFilters } from "@/types/electron";
+import type { SolicitacaoRow, ListFilters, AppUser } from "@/types/electron";
 import { STATUS_OPTIONS, TPDOC_OPTIONS, TPDOC_MAP } from "@/lib/constants";
 import { StatusBadge } from "./StatusBadge";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
-import { Paperclip, Filter, RotateCw, Database, LogOut, AlertCircle, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, BarChart3 } from "lucide-react";
+import { Paperclip, Filter, RotateCw, Database, LogOut, AlertCircle, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, BarChart3, User } from "lucide-react";
 import { toast } from "sonner";
 import SolicitacaoDetail from "./SolicitacaoDetail";
 import Statistics from "./Statistics";
@@ -23,7 +23,7 @@ interface Lookups {
   crcs: { cos_id: string; nomecurto: string }[];
 }
 
-export default function SolicitacoesList({ onLogout }: { onLogout: () => void }) {
+export default function SolicitacoesList({ user, onLogout }: { user: AppUser; onLogout: () => void }) {
   const [rows, setRows] = useState<SolicitacaoRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [lookups, setLookups] = useState<Lookups>({ instituicoes: [], instalacoes: [], crcs: [] });
@@ -33,10 +33,13 @@ export default function SolicitacoesList({ onLogout }: { onLogout: () => void })
   const [pageSize, setPageSize] = useState(20);
   const [pageInput, setPageInput] = useState("1");
   const [showStats, setShowStats] = useState(false);
+  const [onlyMine, setOnlyMine] = useState(false);
 
-  async function load(f: ListFilters = filters) {
+  async function load(f: ListFilters = filters, mine: boolean = onlyMine) {
     setLoading(true);
-    const r = await api.listSolicitacoes(f);
+    const eff: ListFilters = { ...f };
+    if (mine && user.lgn_usuario) eff.meuUsuario = user.lgn_usuario;
+    const r = await api.listSolicitacoes(eff);
     setLoading(false);
     if (r.ok && r.rows) {
       setRows(r.rows);
@@ -49,7 +52,7 @@ export default function SolicitacoesList({ onLogout }: { onLogout: () => void })
     api.lookups().then((r) => {
       if (r.ok) setLookups({ instituicoes: r.instituicoes || [], instalacoes: r.instalacoes || [], crcs: r.crcs || [] });
     });
-    load({});
+    load({}, false);
   }, []);
 
   const filteredInstalacoes = useMemo(
@@ -62,8 +65,9 @@ export default function SolicitacoesList({ onLogout }: { onLogout: () => void })
     setFilters(next);
   }
 
-  async function handleApply() { await load(filters); }
-  async function handleClear() { setFilters({}); await load({}); }
+  async function handleApply() { await load(filters, onlyMine); }
+  async function handleClear() { setFilters({}); setOnlyMine(false); await load({}, false); }
+  async function toggleOnlyMine(v: boolean) { setOnlyMine(v); await load(filters, v); }
 
   function handleOpenTpDoc(row: SolicitacaoRow) {
     const meta = TPDOC_MAP[row.id_tpdocumento];
@@ -88,6 +92,10 @@ export default function SolicitacoesList({ onLogout }: { onLogout: () => void })
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-xs">
+              <User className="size-3.5" />
+              <span className="font-medium" title={user.lgn_usuario}>{user.nom_usuario}</span>
+            </div>
             <Button variant="secondary" size="sm" onClick={() => setShowStats(true)}>
               <BarChart3 /> Estatísticas
             </Button>
@@ -220,9 +228,15 @@ export default function SolicitacoesList({ onLogout }: { onLogout: () => void })
               <DateInputBR value={filters.dataFim} onChange={(v) => update("dataFim", v)} />
             </div>
           </div>
-          <div className="flex justify-end gap-2 mt-4">
-            <Button variant="ghost" onClick={handleClear}>Limpar</Button>
-            <Button onClick={handleApply} disabled={loading}>Filtrar</Button>
+          <div className="flex items-center justify-between gap-2 mt-4 flex-wrap">
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <Checkbox checked={onlyMine} onCheckedChange={(v) => toggleOnlyMine(!!v)} />
+              <span>Ver apenas as minhas análises</span>
+            </label>
+            <div className="flex gap-2">
+              <Button variant="ghost" onClick={handleClear}>Limpar</Button>
+              <Button onClick={handleApply} disabled={loading}>Filtrar</Button>
+            </div>
           </div>
         </Card>
 
@@ -330,7 +344,7 @@ export default function SolicitacoesList({ onLogout }: { onLogout: () => void })
       {selectedId !== null && (
         <SolicitacaoDetail id={selectedId} onClose={() => setSelectedId(null)} />
       )}
-      {showStats && <Statistics onClose={() => setShowStats(false)} />}
+      {showStats && <Statistics user={user} onClose={() => setShowStats(false)} />}
     </div>
   );
 }

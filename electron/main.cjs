@@ -7,6 +7,21 @@ let mainWindow;
 let pool = null;
 let currentConfig = null;
 
+// =============================================================================
+// >>> CREDENCIAIS DE ACESSO AO MICROSOFT SQL SERVER (preencha aqui) <<<
+// Estas credenciais são usadas pelo login do usuário (login/senha do app).
+// Se a conexão automática falhar, o usuário cai na tela manual de conexão.
+// =============================================================================
+const HARDCODED_SQL = {
+  host: "prd-inst-xxx.exemplo.local", // <-- ALTERAR: hostname/IP do SQL Server
+  port: 2058,                          // <-- ALTERAR: porta
+  database: "INBOUND_xxx",             // <-- ALTERAR: nome do database
+  username: "usuario_servico",         // <-- ALTERAR: usuário SQL
+  password: "senha_servico",           // <-- ALTERAR: senha SQL
+  encrypt: false,                      // <-- ALTERAR se necessário (TLS)
+};
+// =============================================================================
+
 const credsPath = () => path.join(app.getPath("userData"), "sql-credentials.bin");
 
 function createWindow() {
@@ -105,6 +120,42 @@ ipcMain.handle("sql:connect", async (_e, config) => {
   }
 });
 
+// ----- Auth: login do usuário usando sintegre.tb_usuario -----
+// Usa as HARDCODED_SQL para conectar e procura pelo lgn_usuario ou mail_usuario.
+// A senha NÃO é validada (regra atual). Mas o usuário não precisa saber.
+ipcMain.handle("auth:login", async (_e, { login }) => {
+  try {
+    if (!pool) {
+      try { await connect(HARDCODED_SQL); }
+      catch (err) {
+        return { ok: false, mode: "needs-manual", error: "Falha ao conectar ao SQL com credenciais embutidas: " + err.message };
+      }
+    }
+    const term = String(login || "").trim();
+    if (!term) return { ok: false, error: "Informe o login ou e-mail." };
+    // Comparação tolerante: aceita "nome_usuario" puro, "ons\nome", ou e-mail
+    const r = await pool.request()
+      .input("term", sql.NVarChar(200), term)
+      .input("termOns", sql.NVarChar(200), `ons\\${term}`)
+      .query(`
+        SELECT TOP 1 lgn_usuario, mail_usuario, nom_usuario
+        FROM sintegre.tb_usuario
+        WHERE LOWER(LTRIM(RTRIM(lgn_usuario))) = LOWER(@term)
+           OR LOWER(LTRIM(RTRIM(lgn_usuario))) = LOWER(@termOns)
+           OR LOWER(LTRIM(RTRIM(mail_usuario))) = LOWER(@term)
+      `);
+    if (!r.recordset.length) return { ok: false, error: "Login ou senha incorretos." };
+    const u = r.recordset[0];
+    return { ok: true, user: {
+      lgn_usuario: (u.lgn_usuario || "").trim(),
+      mail_usuario: (u.mail_usuario || "").trim(),
+      nom_usuario: (u.nom_usuario || "").trim(),
+    } };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+});
+
 async function ensurePool() {
   if (pool) return pool;
   const saved = loadCreds();
@@ -150,6 +201,12 @@ ipcMain.handle("sql:listSolicitacoes", async (_e, filters = {}) => {
     if (filters.dataFim) {
       req.input("dataFim", sql.DateTime, new Date(filters.dataFim));
       where += ` AND s.din_modificacao <= @dataFim`;
+    }
+    if (filters.meuUsuario) {
+      req.input("meuUsuario", sql.NVarChar(200), filters.meuUsuario);
+      where += ` AND EXISTS (SELECT 1 FROM DiagramasUnifilares.tb_auditoria au
+        WHERE au.id_solicitacao = s.id_solicitacao
+          AND LOWER(LTRIM(RTRIM(au.nom_usuario))) = LOWER(@meuUsuario))`;
     }
 
     const query = `
