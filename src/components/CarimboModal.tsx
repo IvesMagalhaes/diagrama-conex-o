@@ -104,6 +104,7 @@ export default function CarimboModal({ onClose, onStamped }: { onClose: () => vo
           dataUrl: canvas.toDataURL("image/png"),
           width: viewport.width,
           height: viewport.height,
+          rotation: 0,
         });
       }
       setPages(out);
