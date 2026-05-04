@@ -87,7 +87,7 @@ export default function SolicitacaoDetailModal({ id, onClose }: { id: number; on
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-[95vw] w-[95vw] max-h-[90vh] overflow-y-auto sm:max-w-[95vw]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3 flex-wrap">
             <span>Solicitação #{id}</span>
@@ -112,7 +112,7 @@ export default function SolicitacaoDetailModal({ id, onClose }: { id: number; on
             )}
 
             {/* Bloco solicitante */}
-            <section className="grid grid-cols-2 md:grid-cols-5 gap-3 text-sm field-card p-4">
+            <section className="grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
               <Field label="Data de Criação"><DateTimeCell iso={s.din_criacao} /></Field>
               <Field label="Solicitante" value={s.nom_criacao} />
               <Field label="E-mail">
@@ -128,7 +128,7 @@ export default function SolicitacaoDetailModal({ id, onClose }: { id: number; on
             </section>
 
             {/* Bloco instalação */}
-            <section className="grid grid-cols-2 md:grid-cols-4 gap-3 p-4 field-card text-sm">
+            <section className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
               <Field label="Instituição" icon={<Building2 className="size-3.5" />} value={s.nom_agenteoperacao || "—"} />
               <Field label="Sigla" icon={<Hash className="size-3.5" />} value={isTemporaria ? "—" : (s.ins_id?.trim() || "—")} />
               <Field label="Instalação" icon={<MapPin className="size-3.5" />} value={s.instalacao_nome || "—"} />
