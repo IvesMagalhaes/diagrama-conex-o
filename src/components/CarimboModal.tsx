@@ -5,7 +5,7 @@ import { Stamp, Upload, RefreshCw, Loader2, FileDown, AlertTriangle, Trash2, Ima
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { Rnd } from "react-rnd";
-import { PDFDocument } from "pdf-lib";
+import { PDFDocument, degrees } from "pdf-lib";
 import * as pdfjsLib from "pdfjs-dist/build/pdf.mjs";
 import pdfWorker from "pdfjs-dist/build/pdf.worker.mjs?url";
 
