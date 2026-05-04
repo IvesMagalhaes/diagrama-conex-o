@@ -67,32 +67,27 @@ All colors MUST be HSL.
     --gradient-header: linear-gradient(90deg, hsl(212 85% 25%), hsl(212 85% 35%));
     --shadow-card: 0 1px 3px hsl(215 25% 15% / 0.06), 0 1px 2px hsl(215 25% 15% / 0.04);
 
-    /* Field section tokens (cabeçalho mais escuro do label sobre a seção clara) */
-    --field-section-bg: 210 25% 93%;
-    --field-label-bg: 215 30% 28%;
-    --field-label-fg: 210 40% 96%;
+    /* Field label tokens (título com cor mais forte / maior contraste) */
+    --field-label-fg: 215 60% 22%;
   }
 }
 
 @layer utilities {
-  .field-card {
-    background: hsl(var(--field-section-bg));
-    border-radius: var(--radius);
-  }
   .field-label {
-    background: hsl(var(--field-label-bg));
     color: hsl(var(--field-label-fg));
+    font-weight: 600;
   }
 }
 
 @layer components {
-  @keyframes mpo-glow {
+  @keyframes mpo-glow-long {
     0%   { box-shadow: 0 0 0 0 hsl(var(--primary) / 0); }
-    30%  { box-shadow: 0 0 0 6px hsl(var(--primary) / 0.35), 0 0 30px hsl(var(--primary) / 0.45); }
+    5%   { box-shadow: 0 0 0 6px hsl(var(--primary) / 0.45), 0 0 30px hsl(var(--primary) / 0.5); }
+    80%  { box-shadow: 0 0 0 6px hsl(var(--primary) / 0.45), 0 0 30px hsl(var(--primary) / 0.5); }
     100% { box-shadow: 0 0 0 0 hsl(var(--primary) / 0); }
   }
   .mpo-glow {
-    animation: mpo-glow 1.6s ease-out 1;
+    animation: mpo-glow-long 10s ease-out 1;
     border-radius: var(--radius);
   }
 }
