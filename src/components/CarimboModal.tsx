@@ -146,20 +146,33 @@ export default function CarimboModal({ onClose, onStamped }: { onClose: () => vo
   function handlePageClick(e: React.MouseEvent<HTMLDivElement>, page: RenderedPage) {
     if (!stampDataUrl) return;
     const target = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - target.left - DEFAULT_W / 2;
-    const y = e.clientY - target.top - DEFAULT_H / 2;
+    const w = initialStampW;
+    const h = initialStampH;
+    const x = e.clientX - target.left - w / 2;
+    const y = e.clientY - target.top - h / 2;
     setStamps((prev) => ({
       ...prev,
       [page.pageIndex]: {
         pageIndex: page.pageIndex,
-        x: Math.max(0, Math.min(target.width - DEFAULT_W, x)),
-        y: Math.max(0, Math.min(target.height - DEFAULT_H, y)),
-        width: prev[page.pageIndex]?.width ?? DEFAULT_W,
-        height: prev[page.pageIndex]?.height ?? DEFAULT_H,
+        x: Math.max(0, Math.min(target.width - w, x)),
+        y: Math.max(0, Math.min(target.height - h, y)),
+        width: prev[page.pageIndex]?.width ?? w,
+        height: prev[page.pageIndex]?.height ?? h,
         renderedWidth: target.width,
         renderedHeight: target.height,
       },
     }));
+  }
+
+  function rotatePage(pageIndex: number) {
+    setPages((prev) => prev.map((p) => p.pageIndex === pageIndex ? { ...p, rotation: (p.rotation + 90) % 360 } : p));
+    // Remove o carimbo da página rotacionada (a posição não faz mais sentido)
+    setStamps((prev) => {
+      if (!prev[pageIndex]) return prev;
+      const n = { ...prev };
+      delete n[pageIndex];
+      return n;
+    });
   }
 
   function removeStamp(pageIndex: number) {
