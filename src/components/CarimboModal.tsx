@@ -356,32 +356,48 @@ export default function CarimboModal({ onClose, onStamped }: { onClose: () => vo
                     return (
                       <div key={p.pageIndex} className="space-y-1">
                         <div className="flex items-center justify-between text-xs">
-                          <span className="font-medium">Página {p.pageIndex + 1}</span>
-                          {s ? (
-                            <button onClick={() => removeStamp(p.pageIndex)} className="text-rose-600 hover:underline inline-flex items-center gap-1">
-                              <Trash2 className="size-3" /> Remover carimbo
+                          <span className="font-medium">
+                            Página {p.pageIndex + 1}
+                            {p.rotation ? <span className="text-muted-foreground ml-2">· rotação {p.rotation}°</span> : null}
+                          </span>
+                          <div className="flex items-center gap-3">
+                            <button onClick={() => rotatePage(p.pageIndex)} className="text-primary hover:underline inline-flex items-center gap-1">
+                              <RotateCw className="size-3" /> Rotacionar 90°
                             </button>
-                          ) : (
-                            <span className="text-muted-foreground">Sem carimbo</span>
-                          )}
+                            {s ? (
+                              <button onClick={() => removeStamp(p.pageIndex)} className="text-rose-600 hover:underline inline-flex items-center gap-1">
+                                <Trash2 className="size-3" /> Remover carimbo
+                              </button>
+                            ) : (
+                              <span className="text-muted-foreground">Sem carimbo</span>
+                            )}
+                          </div>
                         </div>
                         <div
-                          className="relative border rounded-md overflow-hidden cursor-crosshair bg-white"
-                          style={{ width: "100%", maxWidth: 800 }}
+                          className="relative border rounded-md overflow-hidden cursor-crosshair bg-white mx-auto"
+                          style={{
+                            width: "100%",
+                            maxWidth: p.rotation % 180 === 0 ? 800 : 600,
+                          }}
                           onClick={(e) => {
-                            // ignora clique se veio do Rnd (carimbo)
                             if ((e.target as HTMLElement).closest(".pdf-stamp-rnd")) return;
                             handlePageClick(e, p);
                           }}
                         >
-                          <img src={p.dataUrl} alt={`Página ${p.pageIndex + 1}`} className="block w-full h-auto select-none" draggable={false} />
+                          <img
+                            src={p.dataUrl}
+                            alt={`Página ${p.pageIndex + 1}`}
+                            className="block w-full h-auto select-none"
+                            draggable={false}
+                            style={{ transform: `rotate(${p.rotation}deg)`, transformOrigin: "center center" }}
+                          />
                           {s && stampDataUrl && (
                             <Rnd
                               className="pdf-stamp-rnd"
                               size={{ width: s.width, height: s.height }}
                               position={{ x: s.x, y: s.y }}
                               bounds="parent"
-                              lockAspectRatio
+                              lockAspectRatio={stampRatio}
                               onDragStop={(_e, d) => {
                                 setStamps((prev) => ({ ...prev, [p.pageIndex]: { ...prev[p.pageIndex], x: d.x, y: d.y } }));
                               }}
