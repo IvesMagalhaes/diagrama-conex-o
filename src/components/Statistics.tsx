@@ -543,30 +543,24 @@ export default function Statistics({ user, onClose }: { user: AppUser; onClose: 
 
             {/* Por COS */}
             <div className="grid md:grid-cols-2 gap-3">
-              <Card className="p-3">
-                <h3 className="font-semibold text-sm mb-2">Análises por COS ONS</h3>
+              <ChartCard title="Análises por COS ONS" onMaximize={setMaximizedChart}>
                 <ChartBar data={porCos} dataKey="count" name="Análises" />
-              </Card>
-              <Card className="p-3">
-                <h3 className="font-semibold text-sm mb-2">Tempo médio por COS (horas)</h3>
-                <ChartBar data={porCos} dataKey="tempoMedioH" name="Horas" color={COLORS[1]} />
-              </Card>
-              <Card className="p-3">
-                <h3 className="font-semibold text-sm mb-2">Por Tipo de Diagrama</h3>
+              </ChartCard>
+              <ChartCard title={`Tempo médio por COS (${unitSuffix(timeUnit)})`} onMaximize={setMaximizedChart}>
+                <ChartBar data={porCos} dataKey="tempoMedio" name={unitSuffix(timeUnit)} color={COLORS[1]} />
+              </ChartCard>
+              <ChartCard title="Por Tipo de Diagrama" onMaximize={setMaximizedChart}>
                 <ChartPie data={porTipo} />
-              </Card>
-              <Card className="p-3">
-                <h3 className="font-semibold text-sm mb-2">Top Instituições</h3>
+              </ChartCard>
+              <ChartCard title="Top Instituições" onMaximize={setMaximizedChart}>
                 <ChartBar data={porAgente} dataKey="count" name="Análises" color={COLORS[2]} />
-              </Card>
-              <Card className="p-3">
-                <h3 className="font-semibold text-sm mb-2">Top Instalações</h3>
+              </ChartCard>
+              <ChartCard title="Top Instalações" onMaximize={setMaximizedChart}>
                 <ChartBar data={porInstalacao} dataKey="count" name="Análises" color={COLORS[3]} />
-              </Card>
-              <Card className="p-3">
-                <h3 className="font-semibold text-sm mb-2">Top Usuários (analistas)</h3>
+              </ChartCard>
+              <ChartCard title="Top Usuários (analistas)" onMaximize={setMaximizedChart}>
                 <ChartBar data={porUsuario} dataKey="count" name="Análises" color={COLORS[4]} />
-              </Card>
+              </ChartCard>
             </div>
 
             {/* Pendências */}
@@ -576,22 +570,18 @@ export default function Statistics({ user, onClose }: { user: AppUser; onClose: 
                 <InfoTip text="Pendência do Agente: status mudou de 'Em Análise' para 'Pendência' (ONS pediu complemento ao agente). Pendência do ONS: status mudou de 'Pendência' para 'Em Análise' (agente respondeu e o ONS retomou)." />
               </h3>
               <div className="grid md:grid-cols-2 gap-3">
-                <div>
-                  <h4 className="text-xs font-medium text-muted-foreground mb-1">Quantidade de pendências por COS ONS</h4>
+                <ChartCard title="Quantidade de pendências por COS ONS" subtle onMaximize={setMaximizedChart}>
                   <ChartStackedPend data={pendPorCos} mode="count" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-medium text-muted-foreground mb-1">Quantidade de pendências por Instituição (Top 12)</h4>
+                </ChartCard>
+                <ChartCard title="Quantidade de pendências por Instituição (Top 12)" subtle onMaximize={setMaximizedChart}>
                   <ChartStackedPend data={pendPorAgente} mode="count" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-medium text-muted-foreground mb-1">Tempo de pendência por COS (horas)</h4>
+                </ChartCard>
+                <ChartCard title={`Tempo de pendência por COS (${unitSuffix(timeUnit)})`} subtle onMaximize={setMaximizedChart}>
                   <ChartStackedPend data={pendPorCos} mode="time" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-medium text-muted-foreground mb-1">Tempo de pendência por Instituição (horas)</h4>
+                </ChartCard>
+                <ChartCard title={`Tempo de pendência por Instituição (${unitSuffix(timeUnit)})`} subtle onMaximize={setMaximizedChart}>
                   <ChartStackedPend data={pendPorAgente} mode="time" />
-                </div>
+                </ChartCard>
               </div>
             </Card>
 
