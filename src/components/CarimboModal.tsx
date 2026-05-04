@@ -34,6 +34,7 @@ const DEFAULT_H = 90;
 
 export default function CarimboModal({ onClose, onStamped }: { onClose: () => void; onStamped?: () => void }) {
   const [stampDataUrl, setStampDataUrl] = useState<string | null>(null);
+  const [stampNatural, setStampNatural] = useState<{ w: number; h: number } | null>(null);
   const [stampLoading, setStampLoading] = useState(true);
   const stampInputRef = useRef<HTMLInputElement>(null);
   const pdfInputRef = useRef<HTMLInputElement>(null);
@@ -46,6 +47,19 @@ export default function CarimboModal({ onClose, onStamped }: { onClose: () => vo
   const [confirming, setConfirming] = useState(false);
   const [saving, setSaving] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+
+  // Carrega dimensões naturais do carimbo para manter proporção
+  useEffect(() => {
+    if (!stampDataUrl) { setStampNatural(null); return; }
+    const img = new Image();
+    img.onload = () => setStampNatural({ w: img.naturalWidth, h: img.naturalHeight });
+    img.src = stampDataUrl;
+  }, [stampDataUrl]);
+
+  // ratio carimbo (w/h)
+  const stampRatio = stampNatural ? stampNatural.w / stampNatural.h : DEFAULT_W / DEFAULT_H;
+  const initialStampW = DEFAULT_W;
+  const initialStampH = Math.round(DEFAULT_W / stampRatio);
 
   // carrega carimbo persistido
   useEffect(() => {
