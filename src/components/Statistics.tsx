@@ -620,8 +620,41 @@ export default function Statistics({ user, onClose }: { user: AppUser; onClose: 
           </div>
         )}
         </TooltipProvider>
+
+        {maximizedChart && (
+          <Dialog open onOpenChange={(o) => !o && setMaximizedChart(null)}>
+            <DialogContent className="max-w-[95vw] w-[95vw] max-h-[92vh]">
+              <DialogHeader>
+                <DialogTitle>{maximizedChart.title}</DialogTitle>
+              </DialogHeader>
+              <div className="h-[75vh]">{maximizedChart.node}</div>
+            </DialogContent>
+          </Dialog>
+        )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+function ChartCard({ title, subtle, onMaximize, children }: { title: string; subtle?: boolean; onMaximize: (m: { title: string; node: React.ReactNode }) => void; children: React.ReactNode }) {
+  const Wrapper: React.ElementType = subtle ? "div" : Card;
+  const wrapperProps = subtle ? {} : { className: "p-3" };
+  return (
+    <Wrapper {...wrapperProps}>
+      <div className="flex items-center justify-between mb-2">
+        <h3 className={subtle ? "text-xs font-medium text-muted-foreground" : "font-semibold text-sm"}>{title}</h3>
+        <button
+          type="button"
+          onClick={() => onMaximize({ title, node: children })}
+          className="text-muted-foreground hover:text-foreground p-1 rounded hover:bg-muted"
+          aria-label="Maximizar gráfico"
+          title="Maximizar"
+        >
+          <Maximize2 className="size-3.5" />
+        </button>
+      </div>
+      {children}
+    </Wrapper>
   );
 }
 
