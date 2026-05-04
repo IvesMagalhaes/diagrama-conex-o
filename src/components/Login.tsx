@@ -78,7 +78,6 @@ export default function Login({ onLogged }: { onLogged: (user: AppUser) => void 
               <div className="space-y-1.5">
                 <Label htmlFor="lgn">Login ou e-mail</Label>
                 <Input id="lgn" value={login} onChange={(e) => setLogin(e.target.value)} placeholder="nome.usuario  ou  nome@ons.org.br" required autoFocus />
-                <p className="text-xs text-muted-foreground">Use o seu login ONS (parte após "ons\") ou seu e-mail.</p>
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="pwd">Senha</Label>

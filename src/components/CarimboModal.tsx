@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Stamp, Upload, RefreshCw, Loader2, FileDown, AlertTriangle, Trash2, Image as ImageIcon } from "lucide-react";
+import { Stamp, Upload, RefreshCw, Loader2, FileDown, AlertTriangle, Trash2, Image as ImageIcon, RotateCw } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { Rnd } from "react-rnd";
-import { PDFDocument } from "pdf-lib";
+import { PDFDocument, degrees } from "pdf-lib";
 import * as pdfjsLib from "pdfjs-dist/build/pdf.mjs";
 import pdfWorker from "pdfjs-dist/build/pdf.worker.mjs?url";
 
@@ -13,12 +13,10 @@ import pdfWorker from "pdfjs-dist/build/pdf.worker.mjs?url";
 
 interface PageStamp {
   pageIndex: number;
-  // posição em coordenadas da imagem renderizada (px)
   x: number;
   y: number;
   width: number;
   height: number;
-  // dimensões da página renderizada (px) para conversão correta
   renderedWidth: number;
   renderedHeight: number;
 }
@@ -28,6 +26,7 @@ interface RenderedPage {
   dataUrl: string;
   width: number;
   height: number;
+  rotation: number; // 0, 90, 180, 270 — rotação aplicada pelo usuário (cumulativa)
 }
 
 const DEFAULT_W = 180;
@@ -35,6 +34,7 @@ const DEFAULT_H = 90;
 
 export default function CarimboModal({ onClose, onStamped }: { onClose: () => void; onStamped?: () => void }) {
   const [stampDataUrl, setStampDataUrl] = useState<string | null>(null);
+  const [stampNatural, setStampNatural] = useState<{ w: number; h: number } | null>(null);
   const [stampLoading, setStampLoading] = useState(true);
   const stampInputRef = useRef<HTMLInputElement>(null);
   const pdfInputRef = useRef<HTMLInputElement>(null);
@@ -47,6 +47,19 @@ export default function CarimboModal({ onClose, onStamped }: { onClose: () => vo
   const [confirming, setConfirming] = useState(false);
   const [saving, setSaving] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+
+  // Carrega dimensões naturais do carimbo para manter proporção
+  useEffect(() => {
+    if (!stampDataUrl) { setStampNatural(null); return; }
+    const img = new Image();
+    img.onload = () => setStampNatural({ w: img.naturalWidth, h: img.naturalHeight });
+    img.src = stampDataUrl;
+  }, [stampDataUrl]);
+
+  // ratio carimbo (w/h)
+  const stampRatio = stampNatural ? stampNatural.w / stampNatural.h : DEFAULT_W / DEFAULT_H;
+  const initialStampW = DEFAULT_W;
+  const initialStampH = Math.round(DEFAULT_W / stampRatio);
 
   // carrega carimbo persistido
   useEffect(() => {
@@ -105,6 +118,7 @@ export default function CarimboModal({ onClose, onStamped }: { onClose: () => vo
           dataUrl: canvas.toDataURL("image/png"),
           width: viewport.width,
           height: viewport.height,
+          rotation: 0,
         });
       }
       setPages(out);
@@ -132,20 +146,33 @@ export default function CarimboModal({ onClose, onStamped }: { onClose: () => vo
   function handlePageClick(e: React.MouseEvent<HTMLDivElement>, page: RenderedPage) {
     if (!stampDataUrl) return;
     const target = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - target.left - DEFAULT_W / 2;
-    const y = e.clientY - target.top - DEFAULT_H / 2;
+    const w = initialStampW;
+    const h = initialStampH;
+    const x = e.clientX - target.left - w / 2;
+    const y = e.clientY - target.top - h / 2;
     setStamps((prev) => ({
       ...prev,
       [page.pageIndex]: {
         pageIndex: page.pageIndex,
-        x: Math.max(0, Math.min(target.width - DEFAULT_W, x)),
-        y: Math.max(0, Math.min(target.height - DEFAULT_H, y)),
-        width: prev[page.pageIndex]?.width ?? DEFAULT_W,
-        height: prev[page.pageIndex]?.height ?? DEFAULT_H,
+        x: Math.max(0, Math.min(target.width - w, x)),
+        y: Math.max(0, Math.min(target.height - h, y)),
+        width: prev[page.pageIndex]?.width ?? w,
+        height: prev[page.pageIndex]?.height ?? h,
         renderedWidth: target.width,
         renderedHeight: target.height,
       },
     }));
+  }
+
+  function rotatePage(pageIndex: number) {
+    setPages((prev) => prev.map((p) => p.pageIndex === pageIndex ? { ...p, rotation: (p.rotation + 90) % 360 } : p));
+    // Remove o carimbo da página rotacionada (a posição não faz mais sentido)
+    setStamps((prev) => {
+      if (!prev[pageIndex]) return prev;
+      const n = { ...prev };
+      delete n[pageIndex];
+      return n;
+    });
   }
 
   function removeStamp(pageIndex: number) {
@@ -178,17 +205,25 @@ export default function CarimboModal({ onClose, onStamped }: { onClose: () => vo
       const embedded = isPng ? await pdfDoc.embedPng(stampBytes) : await pdfDoc.embedJpg(stampBytes);
 
       const docPages = pdfDoc.getPages();
+
+      // Aplicar rotações de página acumuladas pelo usuário
+      for (const rp of pages) {
+        if (rp.rotation) {
+          const page = docPages[rp.pageIndex];
+          const current = page.getRotation().angle;
+          page.setRotation(degrees((current + rp.rotation) % 360));
+        }
+      }
+
       for (const s of Object.values(stamps)) {
         const page = docPages[s.pageIndex];
         const pw = page.getWidth();
         const ph = page.getHeight();
-        // converter px -> pontos PDF
         const sx = pw / s.renderedWidth;
         const sy = ph / s.renderedHeight;
         const w = s.width * sx;
         const h = s.height * sy;
         const x = s.x * sx;
-        // PDF tem origem no canto inferior esquerdo
         const y = ph - (s.y * sy) - h;
         page.drawImage(embedded, { x, y, width: w, height: h });
       }
@@ -321,32 +356,48 @@ export default function CarimboModal({ onClose, onStamped }: { onClose: () => vo
                     return (
                       <div key={p.pageIndex} className="space-y-1">
                         <div className="flex items-center justify-between text-xs">
-                          <span className="font-medium">Página {p.pageIndex + 1}</span>
-                          {s ? (
-                            <button onClick={() => removeStamp(p.pageIndex)} className="text-rose-600 hover:underline inline-flex items-center gap-1">
-                              <Trash2 className="size-3" /> Remover carimbo
+                          <span className="font-medium">
+                            Página {p.pageIndex + 1}
+                            {p.rotation ? <span className="text-muted-foreground ml-2">· rotação {p.rotation}°</span> : null}
+                          </span>
+                          <div className="flex items-center gap-3">
+                            <button onClick={() => rotatePage(p.pageIndex)} className="text-primary hover:underline inline-flex items-center gap-1">
+                              <RotateCw className="size-3" /> Rotacionar 90°
                             </button>
-                          ) : (
-                            <span className="text-muted-foreground">Sem carimbo</span>
-                          )}
+                            {s ? (
+                              <button onClick={() => removeStamp(p.pageIndex)} className="text-rose-600 hover:underline inline-flex items-center gap-1">
+                                <Trash2 className="size-3" /> Remover carimbo
+                              </button>
+                            ) : (
+                              <span className="text-muted-foreground">Sem carimbo</span>
+                            )}
+                          </div>
                         </div>
                         <div
-                          className="relative border rounded-md overflow-hidden cursor-crosshair bg-white"
-                          style={{ width: "100%", maxWidth: 800 }}
+                          className="relative border rounded-md overflow-hidden cursor-crosshair bg-white mx-auto"
+                          style={{
+                            width: "100%",
+                            maxWidth: p.rotation % 180 === 0 ? 800 : 600,
+                          }}
                           onClick={(e) => {
-                            // ignora clique se veio do Rnd (carimbo)
                             if ((e.target as HTMLElement).closest(".pdf-stamp-rnd")) return;
                             handlePageClick(e, p);
                           }}
                         >
-                          <img src={p.dataUrl} alt={`Página ${p.pageIndex + 1}`} className="block w-full h-auto select-none" draggable={false} />
+                          <img
+                            src={p.dataUrl}
+                            alt={`Página ${p.pageIndex + 1}`}
+                            className="block w-full h-auto select-none"
+                            draggable={false}
+                            style={{ transform: `rotate(${p.rotation}deg)`, transformOrigin: "center center" }}
+                          />
                           {s && stampDataUrl && (
                             <Rnd
                               className="pdf-stamp-rnd"
                               size={{ width: s.width, height: s.height }}
                               position={{ x: s.x, y: s.y }}
                               bounds="parent"
-                              lockAspectRatio
+                              lockAspectRatio={stampRatio}
                               onDragStop={(_e, d) => {
                                 setStamps((prev) => ({ ...prev, [p.pageIndex]: { ...prev[p.pageIndex], x: d.x, y: d.y } }));
                               }}

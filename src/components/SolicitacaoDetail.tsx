@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TPDOC_MAP } from "@/lib/constants";
 import CarimboModal from "./CarimboModal";
+import { toast } from "sonner";
 
 const SINTEGRE_BASE = "https://sintegre.ons.org.br/sites/diagramasunifilares/Paginas/diagramasunifilares_form.aspx?idDiagramaUnifilar=";
 
@@ -87,7 +88,7 @@ export default function SolicitacaoDetailModal({ id, onClose }: { id: number; on
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-[95vw] w-[95vw] max-h-[90vh] overflow-y-auto sm:max-w-[95vw]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3 flex-wrap">
             <span>Solicitação #{id}</span>
@@ -112,7 +113,7 @@ export default function SolicitacaoDetailModal({ id, onClose }: { id: number; on
             )}
 
             {/* Bloco solicitante */}
-            <section className="grid grid-cols-2 md:grid-cols-5 gap-3 text-sm field-card p-4">
+            <section className="grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
               <Field label="Data de Criação"><DateTimeCell iso={s.din_criacao} /></Field>
               <Field label="Solicitante" value={s.nom_criacao} />
               <Field label="E-mail">
@@ -128,7 +129,7 @@ export default function SolicitacaoDetailModal({ id, onClose }: { id: number; on
             </section>
 
             {/* Bloco instalação */}
-            <section className="grid grid-cols-2 md:grid-cols-4 gap-3 p-4 field-card text-sm">
+            <section className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
               <Field label="Instituição" icon={<Building2 className="size-3.5" />} value={s.nom_agenteoperacao || "—"} />
               <Field label="Sigla" icon={<Hash className="size-3.5" />} value={isTemporaria ? "—" : (s.ins_id?.trim() || "—")} />
               <Field label="Instalação" icon={<MapPin className="size-3.5" />} value={s.instalacao_nome || "—"} />
@@ -269,7 +270,11 @@ export default function SolicitacaoDetailModal({ id, onClose }: { id: number; on
           </div>
         )}
       </DialogContent>
-      {carimboOpen && <CarimboModal onClose={() => setCarimboOpen(false)} onStamped={() => { setMpoGlow(true); setTimeout(() => setMpoGlow(false), 1800); }} />}
+      {carimboOpen && <CarimboModal onClose={() => setCarimboOpen(false)} onStamped={() => {
+        setMpoGlow(true);
+        setTimeout(() => setMpoGlow(false), 10000);
+        toast.info('Utilize a função "Editar MPO" para distribuir o diagrama carimbado no MPO.', { duration: 10000 });
+      }} />}
     </Dialog>
   );
 }
@@ -323,11 +328,11 @@ function MpoTable({ rows }: { rows: MpoDocumento[] }) {
 
 function Field({ label, value, icon, children }: { label: string; value?: string | null; icon?: React.ReactNode; children?: React.ReactNode }) {
   return (
-    <div className="rounded-md overflow-hidden border border-border/60 bg-card">
-      <div className="field-label text-[11px] font-semibold flex items-center gap-1 px-2 py-1 uppercase tracking-wide">
+    <div>
+      <div className="field-label text-xs flex items-center gap-1 mb-0.5">
         {icon}{label}
       </div>
-      <div className="text-sm px-2 py-1.5">{children ?? value ?? "—"}</div>
+      <div className="text-sm">{children ?? value ?? "—"}</div>
     </div>
   );
 }
