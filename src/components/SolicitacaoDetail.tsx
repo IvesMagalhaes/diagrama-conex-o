@@ -269,7 +269,11 @@ export default function SolicitacaoDetailModal({ id, onClose }: { id: number; on
           </div>
         )}
       </DialogContent>
-      {carimboOpen && <CarimboModal onClose={() => setCarimboOpen(false)} onStamped={() => { setMpoGlow(true); setTimeout(() => setMpoGlow(false), 1800); }} />}
+      {carimboOpen && <CarimboModal onClose={() => setCarimboOpen(false)} onStamped={() => {
+        setMpoGlow(true);
+        setTimeout(() => setMpoGlow(false), 10000);
+        toast.info('Utilize a função "Editar MPO" para distribuir o diagrama carimbado no MPO.', { duration: 10000 });
+      }} />}
     </Dialog>
   );
 }
