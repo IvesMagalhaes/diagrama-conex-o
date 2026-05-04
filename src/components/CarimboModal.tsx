@@ -13,12 +13,10 @@ import pdfWorker from "pdfjs-dist/build/pdf.worker.mjs?url";
 
 interface PageStamp {
   pageIndex: number;
-  // posição em coordenadas da imagem renderizada (px)
   x: number;
   y: number;
   width: number;
   height: number;
-  // dimensões da página renderizada (px) para conversão correta
   renderedWidth: number;
   renderedHeight: number;
 }
@@ -28,6 +26,7 @@ interface RenderedPage {
   dataUrl: string;
   width: number;
   height: number;
+  rotation: number; // 0, 90, 180, 270 — rotação aplicada pelo usuário (cumulativa)
 }
 
 const DEFAULT_W = 180;
