@@ -205,17 +205,25 @@ export default function CarimboModal({ onClose, onStamped }: { onClose: () => vo
       const embedded = isPng ? await pdfDoc.embedPng(stampBytes) : await pdfDoc.embedJpg(stampBytes);
 
       const docPages = pdfDoc.getPages();
+
+      // Aplicar rotações de página acumuladas pelo usuário
+      for (const rp of pages) {
+        if (rp.rotation) {
+          const page = docPages[rp.pageIndex];
+          const current = page.getRotation().angle;
+          page.setRotation(degrees((current + rp.rotation) % 360));
+        }
+      }
+
       for (const s of Object.values(stamps)) {
         const page = docPages[s.pageIndex];
         const pw = page.getWidth();
         const ph = page.getHeight();
-        // converter px -> pontos PDF
         const sx = pw / s.renderedWidth;
         const sy = ph / s.renderedHeight;
         const w = s.width * sx;
         const h = s.height * sy;
         const x = s.x * sx;
-        // PDF tem origem no canto inferior esquerdo
         const y = ph - (s.y * sy) - h;
         page.drawImage(embedded, { x, y, width: w, height: h });
       }
