@@ -405,7 +405,7 @@ export default function Statistics({ user, onClose }: { user: AppUser; onClose: 
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-6xl max-h-[92vh] overflow-y-auto">
+      <DialogContent className="max-w-[95vw] w-[95vw] max-h-[92vh] overflow-y-auto sm:max-w-[95vw]">
         <TooltipProvider delayDuration={150}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
