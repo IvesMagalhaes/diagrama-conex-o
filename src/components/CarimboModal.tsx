@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Stamp, Upload, RefreshCw, Loader2, FileDown, AlertTriangle, Trash2, Image as ImageIcon } from "lucide-react";
+import { Stamp, Upload, RefreshCw, Loader2, FileDown, AlertTriangle, Trash2, Image as ImageIcon, RotateCw } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { Rnd } from "react-rnd";
