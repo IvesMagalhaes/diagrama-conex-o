@@ -142,17 +142,19 @@ export default function SolicitacaoDetailModal({ id, onClose }: { id: number; on
             {/* MPO */}
             <section className={mpoGlow ? "mpo-glow p-2 -m-2" : ""}>
               <h3 className="font-semibold text-sm mb-2 flex items-center gap-2"><ClipboardList className="size-4" /> MPO</h3>
-              {isTemporaria ? (
-                <p className="text-sm text-muted-foreground">Instalação temporária — consulta MPO não aplicável.</p>
-              ) : mpoLoading ? (
+              {!isTemporaria && mpoLoading ? (
                 <p className="text-sm text-muted-foreground flex items-center gap-2"><Loader2 className="size-3.5 animate-spin" /> Carregando MPO…</p>
-              ) : mpoError ? (
+              ) : !isTemporaria && mpoError ? (
                 <p className="text-sm text-status-pendencia">{mpoError}</p>
-              ) : mpo.length ? (
+              ) : !isTemporaria && mpo.length ? (
                 <MpoTable rows={mpo} />
               ) : (
                 <div className="space-y-3">
-                  <p className="text-sm text-muted-foreground">Nenhum diagrama no MPO encontrado para esta instalação.</p>
+                  <p className="text-sm text-muted-foreground">
+                    {isTemporaria
+                      ? "Instalação temporária — busque o diagrama no MPO manualmente por Código e/ou Assunto:"
+                      : "Nenhum diagrama no MPO encontrado para esta instalação."}
+                  </p>
                   <div className="border rounded-md p-3 space-y-2 bg-muted/30">
                     <p className="text-xs font-medium text-muted-foreground">Buscar manualmente por Código e/ou Assunto:</p>
                     <div className="flex flex-col md:flex-row gap-2">

@@ -16,8 +16,8 @@ import {
 import * as XLSX from "xlsx";
 
 // Cores temáticas para Pendências: verde (Agente) e azul (ONS), iguais aos charts de COS
-const PEND_COLOR_AGENTE = "#10b981";
-const PEND_COLOR_ONS = "hsl(var(--primary))";
+const PEND_COLOR_AGENTE = "hsl(var(--primary))";
+const PEND_COLOR_ONS = "#10b981";
 
 type TimeUnit = "h" | "d" | "m" | "y";
 function msToUnit(ms: number, u: TimeUnit): number {
@@ -410,9 +410,6 @@ export default function Statistics({ user, onClose }: { user: AppUser; onClose: 
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <BarChart3 className="size-5" /> Estatísticas e Indicadores
-            <Button size="sm" variant="outline" disabled className="ml-auto opacity-50 cursor-not-allowed" title="Funcionalidade em breve">
-              <Sparkles className="size-3.5" /> Análise Copilot
-            </Button>
           </DialogTitle>
         </DialogHeader>
 
@@ -478,16 +475,7 @@ export default function Statistics({ user, onClose }: { user: AppUser; onClose: 
             </div>
           </div>
           <div className="mt-3 flex items-center gap-4 flex-wrap">
-            <label className="flex items-center gap-2 text-sm cursor-pointer">
-              <Checkbox checked={ignorarPendencias} onCheckedChange={(v) => setIgnorarPendencias(!!v)} />
-              <span className="flex items-center gap-1.5">Ignorar Pendências
-                <InfoTip text="Quando ativo, o tempo gasto em 'Pendência' é descontado do tempo total e médio." /></span>
-            </label>
-            <label className="flex items-center gap-2 text-sm cursor-pointer">
-              <Checkbox checked={onlyMine} onCheckedChange={(v) => setOnlyMine(!!v)} />
-              <span>Apenas Meus Resultados</span>
-            </label>
-            <div className="flex items-center gap-2 ml-auto">
+            <div className="flex items-center gap-2">
               <span className="text-xs text-muted-foreground">Unidade:</span>
               <Select value={timeUnit} onValueChange={(v) => setTimeUnit(v as TimeUnit)}>
                 <SelectTrigger className="h-8 w-28"><SelectValue /></SelectTrigger>
@@ -499,6 +487,18 @@ export default function Statistics({ user, onClose }: { user: AppUser; onClose: 
                 </SelectContent>
               </Select>
             </div>
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <Checkbox checked={ignorarPendencias} onCheckedChange={(v) => setIgnorarPendencias(!!v)} />
+              <span className="flex items-center gap-1.5">Ignorar Pendências
+                <InfoTip text="Quando ativo, o tempo gasto em 'Pendência' é descontado do tempo total e médio." /></span>
+            </label>
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <Checkbox checked={onlyMine} onCheckedChange={(v) => setOnlyMine(!!v)} />
+              <span>Apenas Meus Resultados</span>
+            </label>
+            <Button size="sm" variant="outline" disabled className="ml-auto opacity-50 cursor-not-allowed" title="Funcionalidade em breve">
+              <Sparkles className="size-3.5" /> Análise Copilot
+            </Button>
           </div>
         </Card>
 
@@ -623,11 +623,11 @@ export default function Statistics({ user, onClose }: { user: AppUser; onClose: 
 
         {maximizedChart && (
           <Dialog open onOpenChange={(o) => !o && setMaximizedChart(null)}>
-            <DialogContent className="max-w-[95vw] w-[95vw] max-h-[92vh]">
+            <DialogContent className="max-w-3xl w-full max-h-[85vh]">
               <DialogHeader>
                 <DialogTitle>{maximizedChart.title}</DialogTitle>
               </DialogHeader>
-              <div className="h-[75vh]">{maximizedChart.node}</div>
+              <div className="h-[60vh]">{maximizedChart.node}</div>
             </DialogContent>
           </Dialog>
         )}
