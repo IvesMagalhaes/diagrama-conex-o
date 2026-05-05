@@ -43,13 +43,9 @@ tb_solicitacao s
 npm install --save-dev electron @electron/packager
 npm install mssql
 
-# 2. Adicionar ao package.json:
-#   "main": "electron/main.cjs",
-#   "scripts": {
-#     "electron:dev": "VITE_DEV_SERVER_URL=http://localhost:8080 electron .",
-#     "electron:build": "vite build && electron .",
-#     "package:win": "vite build && electron-packager . DiagramasUnifilares --platform=win32 --arch=x64 --out=release --overwrite --ignore=^/src --ignore=^/public --ignore=^/release"
-#   }
+# 2. O package.json já deve conter:
+#   "main": "electron/main.cjs"
+#   "package:win": "node scripts/package-win.cjs"
 
 # 3. Rodar
 npm run dev          # terminal 1 (Vite)
@@ -62,5 +58,9 @@ npm run electron:dev # terminal 2 (Electron aponta para o Vite)
 npm run package:win
 # Saída: release/DiagramasUnifilares-win32-x64/DiagramasUnifilares.exe
 ```
+
+O script valida automaticamente o `resources/app.asar` gerado e falha se o
+`package.json` interno não apontar para `electron/main.cjs` ou se `dist/index.html`
+e `electron/main.cjs` não estiverem dentro do pacote.
 
 > O preview web no Lovable roda em **modo demo** com dados mockados (o navegador não abre TCP para SQL Server). O `.exe` Electron faz a conexão real.
