@@ -9,7 +9,7 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "electron:dev": "electron .",
-    "package:win": "vite build && electron-packager . DiagramasUnifilares --platform=win32 --arch=x64 --out=release --overwrite --ignore=^/src --ignore=^/public --ignore=^/release",
+    "package:win": "node scripts/package-win.cjs",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
